@@ -39,16 +39,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ISpeedInfo.cs" />
-    <Compile Include="IBarometerInfo.cs" />
-    <Compile Include="IGPSInfo.cs" />
-    <Compile Include="IVehicle.cs" />
-    <Compile Include="IGimbalControl.cs" />
-    <Compile Include="IGimbalInfo.cs" />
-    <Compile Include="IVehicleProvider.cs" />
+    <Compile Include="Entities\Attitude.cs" />
+    <Compile Include="Interfaces\IOrientationInfo.cs" />
+    <Compile Include="Interfaces\IBatteryInfo.cs" />
+    <Compile Include="Interfaces\ISpeedInfo.cs" />
+    <Compile Include="Interfaces\IBarometerInfo.cs" />
+    <Compile Include="Interfaces\IGPSInfo.cs" />
+    <Compile Include="Interfaces\IVehicle.cs" />
+    <Compile Include="Interfaces\IGimbalControl.cs" />
+    <Compile Include="Interfaces\IGimbalInfo.cs" />
+    <Compile Include="Interfaces\IVehicleProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="VehicleInfo.cs" />
+    <Compile Include="Entities\VehicleInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
