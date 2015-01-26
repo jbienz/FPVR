@@ -65,7 +65,7 @@ namespace FPVR
         /// </value>
         /// For more information see 
         /// <see href="http://en.wikipedia.org/wiki/Dilution_of_precision_(GPS)">Dilution of Precision</see>.
-        double HorizontalDOP { get; }
+        double VerticalDOP { get; }
 
         /// <summary>
         /// The vertical speed in meters per second.

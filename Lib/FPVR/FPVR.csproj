@@ -39,12 +39,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Entities\TravelAttitude.cs" />
     <Compile Include="Entities\Attitude.cs" />
-    <Compile Include="Interfaces\IOrientationInfo.cs" />
+    <Compile Include="Interfaces\ITravelInfo.cs" />
     <Compile Include="Interfaces\IBatteryInfo.cs" />
     <Compile Include="Interfaces\ISpeedInfo.cs" />
     <Compile Include="Interfaces\IBarometerInfo.cs" />
     <Compile Include="Interfaces\IGPSInfo.cs" />
+    <Compile Include="Interfaces\IUpdateRequired.cs" />
     <Compile Include="Interfaces\IVehicle.cs" />
     <Compile Include="Interfaces\IGimbalControl.cs" />
     <Compile Include="Interfaces\IGimbalInfo.cs" />
@@ -54,6 +56,18 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>SET BIN=..\..\..\..\Unity\FPVR\Assets\Plugins\
+
+ECHO Generating mdb debug files
+$(SolutionDir)Tools\pdb2mdb\pdb2mdb $(TargetPath)
+
+ECHO Copying binaries to Bin
+copy $(TargetPath) %25BIN%25
+copy $(TargetPath).mdb %25BIN%25
+
+COPY $(TargetPath) %25BIN%25</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

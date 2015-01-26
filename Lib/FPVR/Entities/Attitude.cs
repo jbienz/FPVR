@@ -40,12 +40,12 @@ namespace FPVR
         /// <summary>
         /// The pitch in degrees.
         /// </summary>
-        double Pitch;
+        public double Pitch;
 
         /// <summary>
         /// The roll in degrees.
         /// </summary>
-        double Roll;
+        public double Roll;
         #endregion // Public Members
     }
 }
