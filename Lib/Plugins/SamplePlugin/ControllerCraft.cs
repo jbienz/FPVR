@@ -31,6 +31,7 @@ namespace SamplePlugin
         private Attitude targetGimbalAttitude;
         private TravelAttitude travelAttitude;
         private double verticalSpeed;
+        private float yaw;
         #endregion // Member Variables
         
         #region IBarometerInfo Interface
@@ -131,10 +132,15 @@ namespace SamplePlugin
         #region IUpdateRequired Interface
         void IUpdateRequired.Update(float deltaTime)
         {
+            yaw += Input.GetAxis("Yaw") * 360;
+
             // Yaw, Pitch, Roll, Throttle
-            travelAttitude.Course += (Input.GetAxis("Yaw") * 20);
+            travelAttitude.Course = (Input.GetAxis("Yaw") * 45);
             travelAttitude.Heading = travelAttitude.Course;
             travelAttitude.HeadingNoCompensation = travelAttitude.Course;
+
+            travelAttitude.Pitch = (Input.GetAxis("Pitch") * 45);
+            travelAttitude.Roll = (Input.GetAxis("Roll") * 45);
         }
         #endregion // IUpdateRequired Interface
 
