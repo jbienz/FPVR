@@ -7,14 +7,16 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{A4DE0BE6-F00A-B601-659D-E98E1B52E91E}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <AssemblyName>Assembly-CSharp</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows:5</UnityBuildTarget>
     <UnityVersion>4.6.1f1</UnityVersion>
@@ -89,7 +91,6 @@
     <Compile Include="Assets\OVR\Scripts\Util\OVRUGUI.cs" />
     <Compile Include="Assets\OVR\Scripts\Util\OVRVisionGuide.cs" />
     <Compile Include="Assets\Scripts\PluginManager.cs" />
-    <Compile Include="Assets\SolerSoft_UI\ComboBox.cs" />
     <Compile Include="Assets\SolerSoft_UI\ControlsController.cs" />
     <Compile Include="Assets\uGUI_Skin_pack_v2\Scripts\ListBox.cs" />
     <Compile Include="Assets\uGUI_Skin_pack_v2\Scripts\MasterSkinManager.cs" />
