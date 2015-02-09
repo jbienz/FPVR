@@ -24,6 +24,7 @@ public class PluginManager : MonoBehaviour {
     private ObservableCollection<PluginInfo> vehicleProviders;
     private ObservableCollection<VehicleInfo> vehicles;
     private IVehicle vehicle;
+    private VehicleManager vehicleManager;
 
 	private void ActivatePlugin(PluginInfo info)
 	{
@@ -115,7 +116,38 @@ public class PluginManager : MonoBehaviour {
 	// Use this for initialization
 	void Start ()
 	{
+        // Get other services
+        vehicleManager = GetComponentInParent<VehicleManager>();
+
+        // Find and show plugins
 		FindPlugins();
 		ShowPlugins();
+
+        // Subscribe to events
+        providerSelector.SelectionChanged += providerSelector_SelectionChanged;
 	}
+
+    private void providerSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Get as plugin info
+        var pi = providerSelector.SelectedItem as PluginInfo;
+
+        // If no selection, ignore
+        if (pi == null) { return; }
+
+        // Create the vhicle provider
+        vehicleProvider = (IVehicleProvider)catalog.CreateInstance(pi);
+
+        // Get info for all vehicles
+        vehicles = new ObservableCollection<VehicleInfo>(vehicleProvider.GetVehicles());
+
+        // If not at least one vehicle, bail
+        if ((vehicles == null) || (vehicles.Count < 1)) { return; }
+
+        // Use first vehicle
+        vehicle = vehicleProvider.GetVehicle(vehicles[0]);
+
+        // Update vehicle manager
+        vehicleManager.vehicle = vehicle;
+    }
 }
