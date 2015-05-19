@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">FPVR</string>
+
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="gimbalStart_button">Start Gimbal</string>
+    <string name="gimbalMove_button">Move Gimbal</string>
+    <string name="GimbalModeButton">Gimbal Mode</string>
+</resources>

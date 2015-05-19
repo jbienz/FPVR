@@ -1,0 +1,53 @@
+ECLIPSE ANDROID PROJECT IMPORT SUMMARY
+======================================
+
+Ignored Files:
+--------------
+The following files were *not* copied into the new Gradle project; you
+should evaluate whether these are still needed in your project and if
+so manually move them:
+
+* proguard-project.txt
+
+Moved Files:
+------------
+Android Gradle projects use a different directory structure than ADT
+Eclipse projects. Here's how the projects were restructured:
+
+* AndroidManifest.xml => dJISDKLIB\src\main\AndroidManifest.xml
+* assets\ => dJISDKLIB\src\main\assets
+* libs\armeabi-v7a\libDJICam.so => dJISDKLIB\src\main\jniLibs\armeabi-v7a\libDJICam.so
+* libs\armeabi-v7a\libdjivideo.so => dJISDKLIB\src\main\jniLibs\armeabi-v7a\libdjivideo.so
+* libs\armeabi-v7a\libffmpeg-neon.so => dJISDKLIB\src\main\jniLibs\armeabi-v7a\libffmpeg-neon.so
+* libs\armeabi-v7a\libFlyForbid-p2v.so => dJISDKLIB\src\main\jniLibs\armeabi-v7a\libFlyForbid-p2v.so
+* libs\armeabi-v7a\libFlyForbid.so => dJISDKLIB\src\main\jniLibs\armeabi-v7a\libFlyForbid.so
+* libs\armeabi-v7a\libGroudStation-p2v.so => dJISDKLIB\src\main\jniLibs\armeabi-v7a\libGroudStation-p2v.so
+* libs\armeabi-v7a\libGroudStation.so => dJISDKLIB\src\main\jniLibs\armeabi-v7a\libGroudStation.so
+* libs\armeabi\libDJICam.so => dJISDKLIB\src\main\jniLibs\armeabi\libDJICam.so
+* libs\armeabi\libdjivideo.so => dJISDKLIB\src\main\jniLibs\armeabi\libdjivideo.so
+* libs\armeabi\libffmpeg-neon.so => dJISDKLIB\src\main\jniLibs\armeabi\libffmpeg-neon.so
+* libs\armeabi\libFlyForbid-p2v.so => dJISDKLIB\src\main\jniLibs\armeabi\libFlyForbid-p2v.so
+* libs\armeabi\libFlyForbid.so => dJISDKLIB\src\main\jniLibs\armeabi\libFlyForbid.so
+* libs\armeabi\libGroudStation-p2v.so => dJISDKLIB\src\main\jniLibs\armeabi\libGroudStation-p2v.so
+* libs\armeabi\libGroudStation.so => dJISDKLIB\src\main\jniLibs\armeabi\libGroudStation.so
+* libs\bouncycastle.jar => dJISDKLIB\libs\bouncycastle.jar
+* libs\eventbus.jar => dJISDKLIB\libs\eventbus.jar
+* libs\mygson-2.0.jar => dJISDKLIB\libs\mygson-2.0.jar
+* libs\pinyin4j-2.5.0.jar => dJISDKLIB\libs\pinyin4j-2.5.0.jar
+* res\ => dJISDKLIB\src\main\res\
+* src\ => dJISDKLIB\src\main\java
+
+Next Steps:
+-----------
+You can now build the project. The Gradle project needs network
+connectivity to download dependencies.
+
+Bugs:
+-----
+If for some reason your project does not build, and you determine that
+it is due to a bug or limitation of the Eclipse to Gradle importer,
+please file a bug at http://b.android.com with category
+Component-Tools.
+
+(This import summary is for your information only, and can be deleted
+after import once you are satisfied with the results.)
