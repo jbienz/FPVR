@@ -1,4 +1,8 @@
+![](Docs/Images/FPVR.png)
 # FPVR
-First Person View flight with VR Headsets
 
-The aim of this project is not only to support FPV but to also including virtual environments and gimbal lag compensation to help eliminate motion sickness. The first headset supported is the Oculus and the first aircraft to be supported is the DJI Inspire 1. However, the shell is written in Unity and the vehicle model is exensible by a plugin system, so virtually any vehichle and gimbal system can be supported in time.
+The goal of this project is to support First Person View flight (and driving) with VR Headsets.
+
+FPVR is not just a simple video player. On supported platforms the camera gimbal can be controlled with a turn of the head. FPVR also provides a virtual environment and virtual Heads-Up Display for aircraft telemetry. Not only does this allow for future expansion (like virtual cockpits), it also addresses gimbal lag and virtually eliminates the motion sickness many experience when wearing headsets like a FatShark or Sony HMZ.
+
+The first headset supported is the Oculus DK2 and the first aircraft supported is the DJI Inspire 1. However, the virtual environment is written in Unity 3D and vehicle telemetry and gimbal control is handled by an extensible plugin system. This flexibility will allow virtually any headset, vehicle and gimbal system to be supported in time.
