@@ -49,6 +49,6 @@ namespace FPVR
         /// <summary>
         /// Gets or set the general type of the vehicle.
         /// </summary>
-        VehicleType Type { get; set; }
+        public VehicleType Type { get; set; }
     }
 }
