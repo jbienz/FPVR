@@ -14,6 +14,6 @@ public interface IVehicleService
      * Gets a value that indicates if the service has been enabled.
      * @return <code>true</code> if the service is enabled; otherwise <code>false</code>.
      */
-    boolean isEnabled();
+    public boolean isEnabled();
     //endregion
 }

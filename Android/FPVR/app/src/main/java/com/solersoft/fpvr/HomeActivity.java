@@ -1,14 +1,25 @@
 package com.solersoft.fpvr;
 
+import com.solersoft.fpvr.fpvrdji.DJIInspire1Vehicle;
+import com.solersoft.fpvr.fpvrdji.DJIVehicle;
+import com.solersoft.fpvr.fpvrlib.Attitude;
+import com.solersoft.fpvr.fpvrlib.Result;
+import com.solersoft.fpvr.fpvrlib.ResultHandler;
+import com.solersoft.fpvr.fpvrlib.StatusListener;
+import com.solersoft.fpvr.fpvrlib.StatusUpdater;
 import com.solersoft.fpvr.util.DJI;
 
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
+import android.text.method.KeyListener;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+
+import java.beans.PropertyChangeListener;
 
 import dji.sdk.api.Camera.DJICameraSettingsTypeDef.*;
 import dji.sdk.api.DJIDrone;
@@ -37,11 +48,9 @@ public class HomeActivity extends Activity
      * Member Variables
      ***************************************************************************/
     private boolean connected;
-    private boolean fpv = false;
-    private GimbalWorkMode gimbalMode = GimbalWorkMode.Free_Mode;
-    private boolean gimbalTracking;
-    private boolean initializing;
-    private boolean validated;
+    private boolean connecting;
+
+    private DJIVehicle djiVehicle;
 
     private Button gimbalModeButton;
     private Button gimbalMoveButton;
@@ -64,90 +73,36 @@ public class HomeActivity extends Activity
     private void StartDJI(final boolean inspire)
     {
         // If already connected or initializing just bail
-        if (connected || initializing) { return; }
+        if (connected) { return; }
 
-        // Initializing
-        initializing = true;
+        // Connecting
+        connecting = true;
 
         // Get the context
         final Context context = this.getApplicationContext();
 
-        try
+        StatusUpdater.UpdateStatus(TAG, "Connecting...");
+
+        if (inspire)
         {
-            UpdateStatus("Initializing...");
-
-            if (inspire)
+            djiVehicle = new DJIInspire1Vehicle(context);
+            djiVehicle.connect(new ResultHandler()
             {
-                DJIDrone.initWithType(context, DJIDroneType.DJIDrone_Inspire1);
-            }
-            else
-            {
-                DJIDrone.initWithType(context, DJIDroneType.DJIDrone_Vision);
-            }
-
-            UpdateStatus("Connecting...");
-            connected = DJIDrone.connectToDrone();
-
-            // Update status and bail if not OK
-            if (!connected)
-            {
-                UpdateStatus("Unable to connect to drone.");
-                initializing = false;
-                return;
-            }
-
-            UpdateStatus("Checking permissions...");
-
-            DJIDrone.checkPermission(getApplicationContext(), new DJIGerneralListener()
-            {
-
                 @Override
-                public void onGetPermissionResult(int result)
+                public void onResult(Result result)
                 {
-                    // Validated based on success
-                    validated = DJI.Success(result);
-
-                    // Show permissions
-                    String desc = DJIError.getCheckPermissionErrorDescription(result);
-                    UpdateStatus("Permissions: " + desc);
-
-                    // Done initializing
-                    initializing = false;
+                    connecting = false;
+                    connected = result.isSuccess();
+                    StatusUpdater.UpdateStatus(TAG, "Connect to drone: " + connected);
                 }
             });
         }
-        catch (Exception e)
-        {
-            UpdateStatus("Unable to initialize: " + e.getMessage());
-            e.printStackTrace();
-            initializing = false;
-        }
-    }
-
-    private boolean StartGimbalTracking()
-    {
-        // If already tracking, bail
-        if (gimbalTracking) { return true; }
-
-        // Set the callback
-        DJIDrone.getDjiGimbal().setGimbalUpdateAttitudeCallBack(onGimbalAttitudeUpdate);
-
-        // Start the updates
-        gimbalTracking = DJIDrone.getDjiGimbal().startUpdateTimer(250);
-
-        // Update status
-        if (gimbalTracking)
-        {
-            UpdateStatus("Gimbal Tracking Started");
-        }
         else
         {
-            UpdateStatus("Gimbal Tracking was unable to start");
+            throw  new UnsupportedOperationException("Not implemented");
         }
-
-        // Return tracking
-        return gimbalTracking;
     }
+
 
     /**
      * Stop the DJI SDK if it was running.
@@ -156,95 +111,10 @@ public class HomeActivity extends Activity
     {
         if (connected)
         {
-            DJIDrone.disconnectToDrone();
+            djiVehicle.disconnect();
             connected = false;
         }
     }
-
-    private void StopGimbalTracking()
-    {
-        if (!gimbalTracking) { return; }
-        DJIDrone.getDjiGimbal().stopUpdateTimer();
-        UpdateStatus("Gimbal Tracking Stopped");
-        gimbalTracking = false;
-    }
-
-    private void TakePhoto()
-    {
-        boolean bConnectState = DJIDrone.getDjiCamera().getCameraConnectIsOk();
-
-        if (!bConnectState)
-        {
-            UpdateStatus("Camera Not Ready");
-            return;
-        }
-        else
-        {
-            UpdateStatus("Camera IS Ready");
-        }
-
-        // Set to photo capture mode
-        DJIDrone.getDjiCamera().setCameraMode(CameraMode.Camera_Capture_Mode, new DJIExecuteResultCallback()
-        {
-            @Override
-            public void onResult(DJIError mErr)
-            {
-                // Test for success
-                if (!DJI.Success(mErr.errorCode))
-                {
-                    String msg = "Could not switch to camera mode: " + mErr.errorCode + " " + DJIError.getErrorDescriptionByErrcode(mErr.errorCode);
-                    UpdateStatus(msg);
-                    return;
-                }
-
-                // Take photo
-                DJIDrone.getDjiCamera().startTakePhoto(CameraCaptureMode.Camera_Single_Capture, new DJIExecuteResultCallback()
-                {
-                    @Override
-                    public void onResult(DJIError mErr)
-                    {
-                        // Test for success
-                        if (!DJI.Success(mErr.errorCode))
-                        {
-                            String msg = "Could not take photo: " + mErr.errorCode + " " + DJIError.getErrorDescriptionByErrcode(mErr.errorCode);
-                            UpdateStatus(msg);
-                            return;
-                        }
-                    }
-                });
-            }
-        });
-    }
-
-    private void UpdateGimbalAttitude()
-    {
-        boolean enabled = true;
-        boolean directionBackward = true;
-        boolean typeRelative = false;
-        DJIGimbalRotation pitch = new DJIGimbalRotation(false, directionBackward, typeRelative, 0);
-        DJIGimbalRotation roll = new DJIGimbalRotation(false, directionBackward, typeRelative, 0);
-        DJIGimbalRotation yaw = new DJIGimbalRotation(enabled, directionBackward, typeRelative, 200);
-
-        DJIDrone.getDjiGimbal().updateGimbalAttitude(pitch, roll, yaw);
-    }
-
-    /**
-     * Updates the status display.
-     * @param msg The message to display.
-     */
-    private void UpdateStatus(final String msg)
-    {
-        HomeActivity.this.runOnUiThread(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                statusLabel.setText(msg);
-            }
-        });
-    }
-
-
 
     /***************************************************************************
      * Overrides
@@ -271,6 +141,24 @@ public class HomeActivity extends Activity
         pitchLabel = (TextView) findViewById(R.id.pitchLabel);
         rollLabel = (TextView) findViewById(R.id.rollLabel);
 
+        // Start status updates
+        StatusUpdater.setStatusListener(new StatusListener()
+        {
+            @Override
+            public void onStatusChanged(final String tag, final String status)
+            {
+                Log.i(tag, status);
+                HomeActivity.this.runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        statusLabel.setText(status);
+                    }
+                });
+            }
+        });
+
         StartDJI(true);
     }
 
@@ -287,50 +175,14 @@ public class HomeActivity extends Activity
      ***************************************************************************/
 
     /**
-     * Called when the Gimbal Mode button is clicked
+     * Called when the Start Gimbal mode button is clicked
      */
     View.OnClickListener gimbalModeButtonOnClick = new View.OnClickListener()
     {
         @Override
         public void onClick(View view)
         {
-            // Increment
-            switch (gimbalMode)
-            {
-                case Free_Mode:
-                    gimbalMode = GimbalWorkMode.Fpv;
-                    break;
-                case Fpv:
-                    gimbalMode = GimbalWorkMode.Yaw_Follow;
-                    break;
-                case Yaw_Follow:
-                    gimbalMode = GimbalWorkMode.Free_Mode;
-                    break;
 
-            }
-
-            DJIGimbalAttitude attitude = new DJIGimbalAttitude();
-            attitude.pitch = 0.0;
-            attitude.roll = 0.0;
-            attitude.yaw = 200;
-            DJIDrone.getDjiGimbal().setGimbalControl(attitude, GimbalWorkMode.Free_Mode, new DJIExecuteResultCallback()
-            {
-                @Override
-                public void onResult(DJIError djiError)
-                {
-                    int errorCode = djiError.errorCode;
-                    if (!DJI.Success(errorCode))
-                    {
-                        String msg = "Could not update gimbal control to " + gimbalMode.name() + ": " + errorCode + " " + DJIError.getErrorDescriptionByErrcode(errorCode);
-                        UpdateStatus(msg);
-                    }
-                    else
-                    {
-                        String msg = "Gimbal control updated to " + gimbalMode.name() + ".";
-                        UpdateStatus(msg);
-                    }
-                }
-            });
         }
     };
 
@@ -342,7 +194,10 @@ public class HomeActivity extends Activity
         @Override
         public void onClick(View view)
         {
-            UpdateGimbalAttitude();
+            if (connected)
+            {
+                djiVehicle.getGimbal().goToAttitude(new Attitude(200,0,0));
+            }
         }
     };
 
@@ -354,35 +209,7 @@ public class HomeActivity extends Activity
         @Override
         public void onClick(View view)
         {
-            if (gimbalTracking)
-            {
-                fpv = !fpv;
-                DJIDrone.getDjiGimbal().setGimbalFpvMode(fpv);
-                UpdateStatus("FPV is now: " + fpv);
-                // StopGimbalTracking();
-            }
-            else
-            {
-                StartGimbalTracking();
-            }
-        }
-    };
-
-    DJIGimbalUpdateAttitudeCallBack onGimbalAttitudeUpdate = new DJIGimbalUpdateAttitudeCallBack()
-    {
-        @Override
-        public void onResult(final DJIGimbalAttitude djiGimbalAttitude)
-        {
-            HomeActivity.this.runOnUiThread(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    yawLabel.setText(Double.toString(djiGimbalAttitude.yaw));
-                    pitchLabel.setText(Double.toString(djiGimbalAttitude.pitch));
-                    rollLabel.setText(Double.toString(djiGimbalAttitude.roll));
-                }
-            });
+            StartDJI(true);
         }
     };
 

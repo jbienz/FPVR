@@ -1,11 +1,13 @@
 package com.solersoft.fpvr.fpvrdji;
 
 import android.content.Context;
-import android.util.Log;
 
-import com.solersoft.fpvr.fpvrlib.ISupportInitialize;
+import com.solersoft.fpvr.fpvrlib.ISupportConnection;
 import com.solersoft.fpvr.fpvrlib.IVehicle;
 import com.solersoft.fpvr.fpvrlib.IVehicleService;
+import com.solersoft.fpvr.fpvrlib.Result;
+import com.solersoft.fpvr.fpvrlib.ResultHandler;
+import com.solersoft.fpvr.fpvrlib.StatusUpdater;
 import com.solersoft.fpvr.util.DJI;
 
 import java.security.InvalidParameterException;
@@ -20,7 +22,7 @@ import dji.sdk.interfaces.DJIGerneralListener;
 /**
  * A base class for DJI aircraft
  */
-public abstract class DJIVehicle implements IVehicle, ISupportInitialize
+public abstract class DJIVehicle implements IVehicle, ISupportConnection
 {
     /***************************************************************************
      * Constants
@@ -29,11 +31,11 @@ public abstract class DJIVehicle implements IVehicle, ISupportInitialize
     private static final String TAG = "DJIVehicle";
 
     //region Member Variables
+    private boolean connected;
+    private boolean connecting;
     private Context context;
     private DJIDroneType droneType;
-    private DJIGimbalControl gimbalControl;
-    private boolean initialized;
-    private boolean initializing;
+    private DJIGimbalService gimbal;
     private Collection<IVehicleService> services;
     private boolean validated;
     //endregion
@@ -57,55 +59,38 @@ public abstract class DJIVehicle implements IVehicle, ISupportInitialize
         services = new HashSet<IVehicleService>();
 
         // Create and add child services
-        gimbalControl = new DJIGimbalControl(this);
-        services.add(gimbalControl);
+        gimbal = new DJIGimbalService();
+        services.add(gimbal);
     }
     //endregion
 
-    /**
-     * Updates the status display.
-     * @param msg The message to display.
-     */
-    private void UpdateStatus(final String msg)
-    {
-        Log.i(TAG, msg);
-        /*HomeActivity.this.runOnUiThread(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                statusLabel.setText(msg);
-            }
-        });*/
-    }
-
     //region Public Methods
     @Override
-    public void Initialize()
+    public void connect(final ResultHandler handler)
     {
-        // If already initialized or initializing just bail
-        if (initialized || initializing) { return; }
+        // If already connected or connecting just bail
+        if (connected || connecting) { return; }
 
         // Initializing
-        initializing = true;
+        connecting = true;
 
         try
         {
-            UpdateStatus("Initializing...");
+            StatusUpdater.UpdateStatus(TAG, "Initializing...");
             DJIDrone.initWithType(context, droneType);
 
-            UpdateStatus("Connecting...");
-            initialized = DJIDrone.connectToDrone();
+            StatusUpdater.UpdateStatus(TAG, "Connecting...");
+            connected = DJIDrone.connectToDrone();
 
             // Update status and bail if not OK
-            if (!initialized)
+            if (!connected)
             {
-                UpdateStatus("Unable to connect to drone.");
-                initializing = false;
+                StatusUpdater.UpdateStatus(TAG, "Unable to connect to drone.");
+                connecting = false;
                 return;
             }
 
-            UpdateStatus("Checking permissions...");
+            StatusUpdater.UpdateStatus(TAG, "Checking permissions...");
 
             DJIDrone.checkPermission(context, new DJIGerneralListener()
             {
@@ -118,24 +103,46 @@ public abstract class DJIVehicle implements IVehicle, ISupportInitialize
 
                     // Show permissions
                     String desc = DJIError.getCheckPermissionErrorDescription(result);
-                    UpdateStatus("Permissions: " + desc);
+                    StatusUpdater.UpdateStatus(TAG, "Permissions: " + desc);
 
-                    // Done initializing
-                    initializing = false;
+                    // If validated, initialize child services
+                    if (validated)
+                    {
+                        gimbal.initialize();
+                    }
+
+                    // Done connecting
+                    connecting = false;
+
+                    // Notify callback
+                    if (handler != null)
+                    {
+                        handler.onResult(new Result(validated));
+                    }
                 }
             });
         }
         catch (Exception e)
         {
-            UpdateStatus("Unable to initialize: " + e.getMessage());
+            StatusUpdater.UpdateStatus(TAG, "Unable to initialize: " + e.getMessage());
             e.printStackTrace();
-            initializing = false;
-        }
+            connecting = false;
 
+            // Notify callback
+            if (handler != null)
+            {
+                handler.onResult(new Result(e));
+            }
+        }
     }
     //endregion
 
     //region Public Properties
+    public DJIGimbalService getGimbal()
+    {
+        return gimbal;
+    }
+
     @Override
     public Collection<IVehicleService> getServices()
     {
@@ -143,9 +150,9 @@ public abstract class DJIVehicle implements IVehicle, ISupportInitialize
     }
 
     @Override
-    public boolean isInitialized()
+    public boolean isConnected()
     {
-        return initialized;
+        return connected;
     }
     //endregion
 }

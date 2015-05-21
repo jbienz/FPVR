@@ -6,13 +6,13 @@ using System.Text;
 namespace FPVR
 {
     /// <summary>
-    /// Provides speed information.
+    /// The interface for a class that provides speed information.
     /// </summary>
     public interface ISpeedInfo
     {
         /// <summary>
-        /// The speed in meters per second.
+        /// Gets the forward speed in meters per second.
         /// </summary>
-        double Speed { get; }
+        double ForwardSpeed { get; }
     }
 }

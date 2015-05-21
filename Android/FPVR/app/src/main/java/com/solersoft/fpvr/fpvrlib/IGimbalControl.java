@@ -5,14 +5,18 @@ package com.solersoft.fpvr.fpvrlib;
  */
 public interface IGimbalControl extends IVehicleService
 {
+    //region Public Methods
     /**
      * Sets the attitude of the gimbal to the angle most comfortable for first-person view.
      */
-    void GoToFPV();
+    public void goToFPV();
+    //endregion
 
+    //region Pubic Properties
     /**
-     * Sets the attitude of the gimbal.
-     * @param attitude The new Attitude.
+     * Causes the gimbal to move to the specified attitude.
+     * @param attitude The new attitude to move to.
      */
-    void SetAttitude(Attitude attitude);
+    public void goToAttitude(Attitude attitude);
+    //endregion
 }

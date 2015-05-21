@@ -13,7 +13,7 @@ public interface ISupportInitialize
     /**
      * Initializes the object.
      */
-    void Initialize();
+    public void initialize();
     //endregion
 
     //region Public Properties
@@ -21,6 +21,6 @@ public interface ISupportInitialize
      * Gets a value that indicates if the object has been initialized.
      * @return <code>true</code> if the object has been initialized; otherwise <code>false</code>.
      */
-    boolean isInitialized();
+    public boolean isInitialized();
     //endregion
 }

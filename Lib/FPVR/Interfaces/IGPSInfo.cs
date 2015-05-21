@@ -5,6 +5,9 @@ using System.Text;
 
 namespace FPVR
 {
+    /// <summary>
+    /// Defines the different types of GPS Fix.
+    /// </summary>
     public enum GPSFix
     {
         Unknown,
@@ -30,14 +33,14 @@ namespace FPVR
         GPSFix GPSFix { get; }
 
         /// <summary>
-        /// Gets the horizontal DOP.
+        /// Gets the horizontal Dilution of Precision.
         /// </summary>
         /// <value>
-        /// The hoizontal DOP if supported; otherwise 0.
+        /// The hoizontal Dilution of Precision if supported; otherwise 0.
         /// </value>
         /// For more information see 
         /// <see href="http://en.wikipedia.org/wiki/Dilution_of_precision_(GPS)">Dilution of Precision</see>.
-        double HorizontalDOP { get; }
+        double HorizontalDilutionOfPrecision { get; }
 
         /// <summary>
         /// The latitude in degrees.
@@ -58,14 +61,14 @@ namespace FPVR
         uint SatellitesVisible { get; }
 
         /// <summary>
-        /// Gets the vertical DOP.
+        /// Gets the vertical Dilution of Precision.
         /// </summary>
         /// <value>
-        /// The vertical DOP if supported; otherwise 0.
+        /// The vertical Dilution of Precision if supported; otherwise 0.
         /// </value>
         /// For more information see 
         /// <see href="http://en.wikipedia.org/wiki/Dilution_of_precision_(GPS)">Dilution of Precision</see>.
-        double VerticalDOP { get; }
+        double VerticalDilutionOfPrecision { get; }
 
         /// <summary>
         /// The vertical speed in meters per second.

@@ -16,38 +16,38 @@ public class TravelAttitude
      */
     public TravelAttitude(double course, double heading, double headingNoCompensation, double pitch, double roll)
     {
-        this.Course = course;
-        this.Heading = heading;
-        this.HeadingNoCompensation = heading;
-        this.Pitch = pitch;
-        this.Roll = roll;
+        this.course = course;
+        this.heading = heading;
+        this.headingNoCompensation = headingNoCompensation;
+        this.pitch = pitch;
+        this.roll = roll;
     }
     // endregion Constructors
 
     // region Public Members
     /**
-     * The course (over ground) in degrees if supported; otherwise the same value as {@link #Heading}.
+     * The course (over ground) in degrees if supported; otherwise the same value as {@link #heading}.
      */
-    public double Course;
+    public double course;
 
     /**
      * The heading in degrees.
      */
-    public double Heading;
+    public double heading;
 
     /**
-     *  The heading in degrees without tilt compensation if supported; otherwise the same value as {@link #Heading}.
+     *  The heading in degrees without tilt compensation if supported; otherwise the same value as {@link #heading}.
      */
-    public double HeadingNoCompensation;
+    public double headingNoCompensation;
 
     /**
      * The pitch in degrees.
      */
-    public double Pitch;
+    public double pitch;
 
     /**
      * The roll in degrees.
      */
-    public double Roll;
+    public double roll;
     // endregion Public Members
 }

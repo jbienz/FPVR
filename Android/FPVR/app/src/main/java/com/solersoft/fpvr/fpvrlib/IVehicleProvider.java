@@ -14,7 +14,7 @@ public interface IVehicleProvider
     /// <returns>
     /// A <see cref="Collection<VehicleInfo>"/> containing all the vehicles.
     /// </returns>
-    Collection<VehicleInfo> GetVehicles();
+    public Collection<VehicleInfo> getVehicles();
 
     /// <summary>
     /// Gets the vehicle that matches the specified info.
@@ -25,6 +25,6 @@ public interface IVehicleProvider
     /// <returns>
     /// The <see cref="IVehicle"/> instance.
     /// </returns>
-    IVehicle GetVehicle(VehicleInfo info);
+    public IVehicle getVehicle(VehicleInfo info);
     // endregion Public Methods
 }

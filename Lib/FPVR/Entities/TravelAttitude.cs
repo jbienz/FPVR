@@ -33,7 +33,7 @@ namespace FPVR
         {
             this.Course = course;
             this.Heading = heading;
-            this.HeadingNoCompensation = heading;
+            this.HeadingNoCompensation = headingNoCompensation;
             this.Pitch = pitch;
             this.Roll = roll;
         }

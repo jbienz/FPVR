@@ -6,7 +6,7 @@ using System.Text;
 namespace FPVR
 {
     /// <summary>
-    /// Provides information about battery health.
+    /// Provides information about battery levels and health.
     /// </summary>
     public interface IBatteryInfo
     {

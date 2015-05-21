@@ -14,9 +14,9 @@ public class Attitude
      */
     public Attitude(double yaw, double pitch, double roll)
     {
-        this.Yaw = yaw;
-        this.Pitch = pitch;
-        this.Roll = roll;
+        this.yaw = yaw;
+        this.pitch = pitch;
+        this.roll = roll;
     }
     //endregion
 
@@ -24,17 +24,17 @@ public class Attitude
     /**
      * The yaw in degrees.
      */
-    public double Yaw;
+    public double yaw;
 
     /**
      * The pitch in degrees.
      */
-    public double Pitch;
+    public double pitch;
 
     /**
      * The roll in degrees.
      */
-    public double Roll;
+    public double roll;
     //endregion
 
 }
