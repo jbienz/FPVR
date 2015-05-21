@@ -11,11 +11,6 @@ import java.util.Collection;
  */
 public interface IVehicle
 {
-
-    public void connect();
-
-    public void disconnect();
-
     //region Public Properties
     /**
      * Gets the name of the vehicle.
@@ -28,11 +23,5 @@ public interface IVehicle
      * @return the collection of services provided by the vehicle.
      */
     public Collection<IVehicleService> getServices();
-
-    /**
-     * Gets a value that indicates if the vehicle is connected.
-     * @return @return <code>true</code> if the vehicle is connected; otherwise <code>false</code>.
-     */
-    public boolean isConnected();
     //endregion
 }

@@ -135,6 +135,15 @@ public abstract class DJIVehicle implements IVehicle, ISupportConnection
             }
         }
     }
+
+    public void disconnect()
+    {
+        if (connected)
+        {
+            DJIDrone.disconnectToDrone();
+            connected = false;
+        }
+    }
     //endregion
 
     //region Public Properties
