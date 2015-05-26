@@ -1,15 +1,15 @@
 package com.solersoft.fpvr.fpvrdji;
 
+import android.util.Log;
+
 import com.solersoft.fpvr.fpvrlib.*;
 
-import java.security.InvalidParameterException;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import dji.sdk.api.DJIDrone;
 import dji.sdk.api.Gimbal.DJIGimbalAttitude;
 import dji.sdk.api.Gimbal.DJIGimbalRotation;
-import dji.sdk.interfaces.DJIExecuteResultCallback;
 import dji.sdk.interfaces.DJIGimbalUpdateAttitudeCallBack;
 
 /**
@@ -147,23 +147,23 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         roll is in range [-1800, +1800]. (real angle x10)
         */
 
-        int y,p,r,cy,cp,cr = 0;
+        int ty,tp,tr,cy,cp,cr = 0;
         synchronized (targetAttitude)
         {
             synchronized (attitude)
             {
                 // Convert double degrees to int range for gimbal API
-                y = (int) Math.round(targetAttitude.yaw * 10);
-                y = Math.min(y, -1800);
-                y = Math.max(y, 1800);
+                ty = (int) Math.round(targetAttitude.yaw * 10);
+                ty = Math.max(ty, -1800);
+                ty = Math.min(ty, 1800);
 
-                p = (int) Math.round(targetAttitude.pitch * 10);
-                p = Math.min(p, 300);
-                p = Math.max(p, -900);
+                tp = (int) Math.round(targetAttitude.pitch * 10);
+                tp = Math.max(tp, -900);
+                tp = Math.min(tp, 300);
 
-                r = (int) Math.round(targetAttitude.roll * 10);
-                r = Math.min(r, 1800);
-                r = Math.max(r, -1800);
+                tr = (int) Math.round(targetAttitude.roll * 10);
+                tr = Math.max(tr, -1800);
+                tr = Math.min(tr, 1800);
 
                 // Absolute to relative
                 cy = (int) Math.round(attitude.yaw * 10);
@@ -172,17 +172,22 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
             }
         }
 
-        y = y - cy;
-        p = p - cp;
-        r = r - cr;
+        int dy = ty - cy;
+        int dp = tp - cp;
+        int dr = tr - cr;
+
+        String t = "DJIGimbalService";
+        Log.d(t, "cy: " + cy + " ty: " + ty + " dy: " + dy);
+        Log.d(t, "cp: " + cp + " tp: " + tp + " dp: " + dp);
+        Log.d(t, "cr: " + cr + " tr: " + tr + " dr: " + dr);
 
         // Convert angles to actual rotation values
         boolean enabled = true;
         boolean directionBackward = true;
-        boolean typeRelative = false;
-        DJIGimbalRotation yaw = new DJIGimbalRotation(enabled, directionBackward, typeRelative, y);
-        DJIGimbalRotation pitch = new DJIGimbalRotation(enabled, directionBackward, typeRelative, p);
-        DJIGimbalRotation roll = new DJIGimbalRotation(enabled, directionBackward, typeRelative, r);
+        boolean typeRelative = true;
+        DJIGimbalRotation yaw = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dy);
+        DJIGimbalRotation pitch = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dp);
+        DJIGimbalRotation roll = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dr);
 
         // Move the gimbal
         DJIDrone.getDjiGimbal().updateGimbalAttitude(pitch, roll, yaw);
@@ -197,6 +202,7 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         {
             synchronized (attitude)
             {
+                Log.d("GimbalUpdate", "y: " + a.yaw + " p: " + a.pitch + " r: " + a.roll);
                 attitude = new Attitude(a.yaw / 10, a.pitch / 10, a.roll / 10);
             }
             if (listener != null)
@@ -206,19 +212,20 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         }
     };
 
+    private boolean bMove = false;
     TimerTask onMoveTimer = new TimerTask()
     {
         @Override
         public void run()
         {
-            moveToTarget();
+            if (bMove) { moveToTarget(); }
         }
     };
     //endregion
 
     //region Public Methods
     @Override
-    public void goToAttitude(Attitude attitude)
+    public void moveAbsolute(Attitude attitude)
     {
         if (!isEnabled()) { return; }
 
@@ -232,13 +239,35 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         moveToTarget();
     }
 
+    public void moveRelative(Attitude attitude)
+    {
+        if (!isEnabled()) { return; }
+
+        // Convert to DJI values
+        int dy = (int)Math.round(attitude.yaw) * 10;
+        int dp = (int)Math.round(attitude.pitch) * 10;
+        int dr = (int)Math.round(attitude.roll) * 10;
+
+        // Convert angles to actual rotation values
+        boolean enabled = true;
+        boolean directionBackward = true;
+        boolean typeRelative = false;
+        DJIGimbalRotation yaw = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dy);
+        DJIGimbalRotation pitch = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dp);
+        DJIGimbalRotation roll = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dr);
+
+        // Move the gimbal
+        // TODO: what do we do about the target?
+        DJIDrone.getDjiGimbal().updateGimbalAttitude(pitch, roll, yaw);
+    }
+
     @Override
-    public void goToFPV()
+    public void moveToFPV()
     {
         if (!isEnabled()) { return; }
 
         // Go to 0,0,0
-        goToAttitude(new Attitude(0, 0, 0));
+        moveAbsolute(new Attitude(0, 0, 0));
     }
 
     @Override

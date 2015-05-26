@@ -7,31 +7,14 @@ import com.solersoft.fpvr.fpvrlib.Result;
 import com.solersoft.fpvr.fpvrlib.ResultHandler;
 import com.solersoft.fpvr.fpvrlib.StatusListener;
 import com.solersoft.fpvr.fpvrlib.StatusUpdater;
-import com.solersoft.fpvr.util.DJI;
 
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
-import android.text.method.KeyListener;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-
-
-import java.beans.PropertyChangeListener;
-
-import dji.sdk.api.Camera.DJICameraSettingsTypeDef.*;
-import dji.sdk.api.DJIDrone;
-import dji.sdk.api.DJIDroneTypeDef.DJIDroneType;
-import dji.sdk.api.DJIError;
-import dji.sdk.api.Gimbal.DJIGimbalAttitude;
-import dji.sdk.api.Gimbal.DJIGimbalRotation;
-import dji.sdk.api.Gimbal.DJIGimbalTypeDef;
-import dji.sdk.api.Gimbal.DJIGimbalTypeDef.*;
-import dji.sdk.interfaces.DJIExecuteResultCallback;
-import dji.sdk.interfaces.DJIGerneralListener;
-import dji.sdk.interfaces.DJIGimbalUpdateAttitudeCallBack;
 
 
 public class HomeActivity extends Activity
@@ -159,7 +142,7 @@ public class HomeActivity extends Activity
             }
         });
 
-        StartDJI(true);
+        // StartDJI(true);
     }
 
     @Override
@@ -186,6 +169,7 @@ public class HomeActivity extends Activity
         }
     };
 
+    int view = -1;
     /**
      * Called when the Start Gimbal button is clicked
      */
@@ -196,7 +180,23 @@ public class HomeActivity extends Activity
         {
             if (connected)
             {
-                djiVehicle.getGimbal().goToAttitude(new Attitude(200,0,0));
+                HomeActivity.this.view = HomeActivity.this.view + 1;
+                if (HomeActivity.this.view > 2) { HomeActivity.this.view = 0; }
+
+                switch (HomeActivity.this.view)
+                {
+                    case 0:
+                        djiVehicle.getGimbal().moveAbsolute(new Attitude(63.8, 77.3, 0)); // FPV
+                        break;
+                    case 1:
+                        djiVehicle.getGimbal().moveAbsolute(new Attitude(64.1, 52.5, 0)); // Down
+                        break;
+                    case 2:
+                        djiVehicle.getGimbal().moveAbsolute(new Attitude(-90.0, 77.3, 0)); // R/L
+                        break;
+                }
+
+                // djiVehicle.getGimbal().moveAbsolute(new Attitude(r,0,0));
             }
         }
     };
