@@ -19,5 +19,11 @@ public interface IGimbalInfo
      * @return The current attitude of the gimbal.
      */
     public Attitude getAttitude();
+
+    /**
+     * Gets the attitude capabilities of the gimbal.
+     * @return An {@link AttitudeCapabilities} that describes the capabilities of the gimbal.
+     */
+    public AttitudeCapabilities getAttitudeCapabilities();
     //endregion
 }

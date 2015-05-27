@@ -1,23 +1,27 @@
 package com.solersoft.fpvr.fpvrlib;
 
-import android.hardware.input.InputManager;
-import android.view.InputDevice;
 import android.view.MotionEvent;
 
 import com.solersoft.fpvr.util.TypeUtils;
 
 import java.security.InvalidParameterException;
-import java.util.Iterator;
 
 /**
  * A controller for a vehicle that uses a gamepad attached to the system.
  */
 public class GamepadVehicleController implements ISupportInitialize
 {
+    //region Constants
+    private final double maxDegreesPerSecond = 10;
+    //endregion
+
+    //region Member Variables
     private IGimbalControl gimbal;
     private boolean initialized;
     private IVehicle vehicle;
+    //endregion
 
+    //region Constructors
     public GamepadVehicleController(IVehicle vehicle)
     {
         // Validate
@@ -26,7 +30,9 @@ public class GamepadVehicleController implements ISupportInitialize
         // Store
         this.vehicle = vehicle;
     }
+    //endregion
 
+    //region Public Methods
     @Override
     public void initialize()
     {
@@ -48,12 +54,6 @@ public class GamepadVehicleController implements ISupportInitialize
         // InputManager.InputDeviceListener
     }
 
-    @Override
-    public boolean isInitialized()
-    {
-        return initialized;
-    }
-
     public boolean handleMotionEvent(MotionEvent motionEvent)
     {
         // Not handled
@@ -70,20 +70,30 @@ public class GamepadVehicleController implements ISupportInitialize
 
         // How much rotation?
         // TODO: Take into account deadzones via InputDevice.MotionRange.getFlat()
+        float zflat = motionEvent.getDevice().getMotionRange(MotionEvent.AXIS_Z).getFlat();
+        float rzflat = motionEvent.getDevice().getMotionRange(MotionEvent.AXIS_RZ).getFlat();
         float z = motionEvent.getAxisValue(MotionEvent.AXIS_Z);
         float rz = motionEvent.getAxisValue(MotionEvent.AXIS_RZ);
 
-        // Degrees per second
-        final double dps = 20;
+        if (Math.abs(z) < zflat) { z = 0; }
+        if (Math.abs(rz) < rzflat) { rz = 0; }
 
-        // Calc relative degrees
-        Attitude att = new Attitude(rz * dps, z * dps, 0);
+        // Calc speed per axis
+        Attitude att = new Attitude(rz * maxDegreesPerSecond, 0, z * maxDegreesPerSecond);
 
-        // TODO: What about throttling?
-        // Move relative degrees
-        gimbal.moveRelative(att);
+        // Update constant motion
+        gimbal.moveContinuous(att);
 
         // Done
         return handled;
     }
+    //endregion
+
+    //region Public Properties
+    @Override
+    public boolean isInitialized()
+    {
+        return initialized;
+    }
+    //endregion
 }

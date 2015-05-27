@@ -4,11 +4,13 @@ import android.util.Log;
 
 import com.solersoft.fpvr.fpvrlib.*;
 
+import java.security.InvalidParameterException;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import dji.sdk.api.DJIDrone;
 import dji.sdk.api.Gimbal.DJIGimbalAttitude;
+import dji.sdk.api.Gimbal.DJIGimbalCapacity;
 import dji.sdk.api.Gimbal.DJIGimbalRotation;
 import dji.sdk.interfaces.DJIGimbalUpdateAttitudeCallBack;
 
@@ -89,11 +91,11 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
 
             }
 
-            DJIGimbalAttitude attitude = new DJIGimbalAttitude();
-            attitude.pitch = 0.0;
-            attitude.roll = 0.0;
-            attitude.yaw = 200;
-            DJIDrone.getDjiGimbal().setGimbalControl(attitude, GimbalWorkMode.Free_Mode, new DJIExecuteResultCallback()
+            DJIGimbalAttitude currentAttitude = new DJIGimbalAttitude();
+            currentAttitude.pitch = 0.0;
+            currentAttitude.roll = 0.0;
+            currentAttitude.yaw = 200;
+            DJIDrone.getDjiGimbal().setGimbalControl(currentAttitude, GimbalWorkMode.Free_Mode, new DJIExecuteResultCallback()
             {
                 @Override
                 public void onResult(DJIError djiError)
@@ -119,14 +121,22 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
 
     //region Constants
     private static final String TAG = "DJIGimbalService";
+    private static double ContinuousUpdatesPerSecond = 4;
     //endregion
 
     //region Member Variables
-    private Attitude attitude = new Attitude(0,0,0);
+    private Attitude currentAttitude = new Attitude(0,0,0);
+    private DJIGimbalAttitude currentAttitudeNative = new DJIGimbalAttitude();
+    private AttitudeCapabilities capabilities;
+    private DJIGimbalCapacity capabilitiesNative;
     private boolean initialized;
+    private boolean initializing;
     private GimbalListener listener;
-    private Attitude targetAttitude = new Attitude(0,0,0);
-    private Timer targetTimer;
+    private DJIGimbalAttitude moveAbsoluteTarget = new DJIGimbalAttitude();
+    private Timer moveAbsoluteTimer;
+    private boolean moveContinuousEnabled;
+    private DJIGimbalAttitude moveContinuousSpeed = new DJIGimbalAttitude();
+    private Timer moveContinuousTimer;
     //endregion
 
     //region Constructors
@@ -134,63 +144,116 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
     {
     }
     //endregion
+    
+    private Attitude clamp(Attitude attitude)
+    {
+        Attitude result = new Attitude();
+        result.pitch = clampPitch(attitude.pitch);
+        result.roll = clampRoll(attitude.roll);
+        result.yaw = clampYaw(attitude.yaw);
+        return result;
+    }
+
+    private double clampPitch(double pitch)
+    {
+        if ((capabilitiesNative == null) || (!capabilitiesNative.pitchAvailable)) { return 0; }
+        pitch = Math.max(pitch, capabilitiesNative.minPitchRotationAngle);
+        pitch = Math.min(pitch, capabilitiesNative.maxPitchRotationAngle);
+        return pitch;
+    }
+
+    private double clampRoll(double roll)
+    {
+        if ((capabilitiesNative == null) || (!capabilitiesNative.rollAvailable)) { return 0; }
+        roll = Math.max(roll, capabilitiesNative.minRollRotationAngle);
+        roll = Math.min(roll, capabilitiesNative.maxRollRotationAngle);
+        return roll;
+    }
+
+    private double clampYaw(double yaw)
+    {
+        if ((capabilitiesNative == null) || (!capabilitiesNative.yawAvailable)) { return 0; }
+        yaw = Math.max(yaw, capabilitiesNative.minYawRotationAngle);
+        yaw = Math.min(yaw, capabilitiesNative.maxYawRotationAngle);
+        return yaw;
+    }
 
     //region Internal Methods
     // HACK: Right now the gimbal does not honor absolute degrees so we must calculate from relative ones
-    private void moveToTarget()
+    private void moveAbsoluteTick()
     {
         if (!isEnabled()) { return; }
 
-        /*
-        yaw	is in range [-1800, +1800]. (real angle x10)
-        pitch is in range [-900, 300]. (real angle x10)
-        roll is in range [-1800, +1800]. (real angle x10)
-        */
-
-        int ty,tp,tr,cy,cp,cr = 0;
-        synchronized (targetAttitude)
+        double p,r,y = 0;
+        synchronized (moveAbsoluteTarget)
         {
-            synchronized (attitude)
+            // Scale
+            p = moveAbsoluteTarget.pitch * 10;
+            r = moveAbsoluteTarget.roll * 10;
+            y = moveAbsoluteTarget.yaw * 10;
+        }
+
+        // Move native
+        moveNative(p,r,y, false);
+    }
+
+    private void moveContinuousTick()
+    {
+        if (!moveContinuousEnabled) { return; }
+
+        // Calculate degrees for this tick
+        double pitch = moveContinuousSpeed.pitch / ContinuousUpdatesPerSecond;
+        double roll = moveContinuousSpeed.roll / ContinuousUpdatesPerSecond;
+        double yaw = moveContinuousSpeed.yaw / ContinuousUpdatesPerSecond;
+
+        // HACK: Since we don't have speed
+        if (pitch > 0) { pitch = 100; }
+        if (pitch < 0) { pitch = -100; }
+        if (roll > 0) { roll = 100; }
+        if (roll < 0) { roll = -100; }
+        if (yaw > 0) { yaw = 100; }
+        if (yaw < 0) { yaw = -100; }
+        
+        // Native move
+        moveNative(pitch, roll, yaw, true);
+    }
+
+    private void moveNative(double pitch, double roll, double yaw, boolean relative)
+    {
+        relative = false;
+        if (relative)
+        {
+            synchronized (currentAttitudeNative)
             {
-                // Convert double degrees to int range for gimbal API
-                ty = (int) Math.round(targetAttitude.yaw * 10);
-                ty = Math.max(ty, -1800);
-                ty = Math.min(ty, 1800);
-
-                tp = (int) Math.round(targetAttitude.pitch * 10);
-                tp = Math.max(tp, -900);
-                tp = Math.min(tp, 300);
-
-                tr = (int) Math.round(targetAttitude.roll * 10);
-                tr = Math.max(tr, -1800);
-                tr = Math.min(tr, 1800);
-
-                // Absolute to relative
-                cy = (int) Math.round(attitude.yaw * 10);
-                cp = (int) Math.round(attitude.pitch * 10);
-                cr = (int) Math.round(attitude.roll * 10);
+                pitch = pitch - currentAttitudeNative.pitch;
+                roll = roll - currentAttitudeNative.roll;
+                yaw = yaw - currentAttitudeNative.yaw;
             }
         }
 
-        int dy = ty - cy;
-        int dp = tp - cp;
-        int dr = tr - cr;
+        // Clamp
+        pitch = clampPitch(pitch);
+        roll = clampRoll(roll);
+        yaw = clampYaw(yaw);
 
-        String t = "DJIGimbalService";
-        Log.d(t, "cy: " + cy + " ty: " + ty + " dy: " + dy);
-        Log.d(t, "cp: " + cp + " tp: " + tp + " dp: " + dp);
-        Log.d(t, "cr: " + cr + " tr: " + tr + " dr: " + dr);
+        // Scale
+        int ps = (int)Math.round(pitch);
+        int rs = (int)Math.round(roll);
+        int ys = (int)Math.round(yaw);
 
-        // Convert angles to actual rotation values
         boolean enabled = true;
-        boolean directionBackward = true;
-        boolean typeRelative = true;
-        DJIGimbalRotation yaw = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dy);
-        DJIGimbalRotation pitch = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dp);
-        DJIGimbalRotation roll = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dr);
+        boolean directionBackward = false;
+        DJIGimbalRotation pr = new DJIGimbalRotation(enabled, directionBackward, relative, ps);
+        DJIGimbalRotation rr = new DJIGimbalRotation(enabled, directionBackward, relative, rs);
+        DJIGimbalRotation yr = new DJIGimbalRotation(enabled, directionBackward, relative, ys);
 
         // Move the gimbal
-        DJIDrone.getDjiGimbal().updateGimbalAttitude(pitch, roll, yaw);
+        DJIDrone.getDjiGimbal().updateGimbalAttitude(pr, rr, yr);
+    }
+
+    private void verifyInitialized()
+    {
+        if (!initialized) { throw new UnsupportedOperationException("This member cannot be called before the class is initialized."); }
     }
     //endregion
 
@@ -200,10 +263,14 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         @Override
         public void onResult(final DJIGimbalAttitude a)
         {
-            synchronized (attitude)
+            synchronized (currentAttitudeNative)
             {
-                Log.d("GimbalUpdate", "y: " + a.yaw + " p: " + a.pitch + " r: " + a.roll);
-                attitude = new Attitude(a.yaw / 10, a.pitch / 10, a.roll / 10);
+                currentAttitudeNative = a;
+            }
+            synchronized (currentAttitude)
+            {
+                Log.d("GimbalUpdate", "p: " + a.pitch + " r: " + a.roll + " y: " + a.yaw);
+                currentAttitude = new Attitude(a.pitch / 10, a.roll / 10, a.yaw / 10);
             }
             if (listener != null)
             {
@@ -212,53 +279,121 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         }
     };
 
-    private boolean bMove = false;
-    TimerTask onMoveTimer = new TimerTask()
+    TimerTask onMoveAbsoluteTimer = new TimerTask()
     {
         @Override
         public void run()
         {
-            if (bMove) { moveToTarget(); }
+            moveAbsoluteTick();
         }
     };
     //endregion
 
     //region Public Methods
     @Override
+    public AttitudeCapabilities getAttitudeCapabilities()
+    {
+        verifyInitialized();
+        if (capabilities == null)
+        {
+            capabilities = new AttitudeCapabilities();
+            capabilities.maxPitchAngle = capabilitiesNative.maxPitchRotationAngle;
+            capabilities.maxRollAngle = capabilitiesNative.maxRollRotationAngle;
+            capabilities.maxYawAngle = capabilitiesNative.minYawRotationAngle;
+            capabilities.minPitchAngle = capabilitiesNative.minPitchRotationAngle;
+            capabilities.minRollAngle = capabilitiesNative.minRollRotationAngle;
+            capabilities.minYawAngle = capabilitiesNative.minYawRotationAngle;
+            capabilities.pitchAvailable = capabilitiesNative.pitchAvailable;
+            capabilities.rollAvailable = capabilitiesNative.rollAvailable;
+            capabilities.yawAvailable = capabilitiesNative.yawAvailable;
+        }
+        return capabilities;
+    }
+
+    @Override
     public void moveAbsolute(Attitude attitude)
     {
+        // Validate
+        if (attitude == null) { throw new InvalidParameterException("attitude cannot be null"); }
+
         if (!isEnabled()) { return; }
 
         // Set the target
-        synchronized (targetAttitude)
+        synchronized (moveAbsoluteTarget)
         {
-            targetAttitude = attitude;
+            moveAbsoluteTarget.pitch = clampPitch(attitude.pitch * 10d);
+            moveAbsoluteTarget.roll = clampRoll(attitude.roll * 10d);
+            moveAbsoluteTarget.yaw = clampYaw(attitude.yaw * 10d);
         }
 
         // Move
-        moveToTarget();
+        moveAbsoluteTick();
+
+        // TODO: Start timer?
+        // moveAbsoluteTimer.scheduleAtFixedRate(onMoveAbsoluteTimer, 500, 500);
+    }
+
+    @Override
+    public void moveContinuous(Attitude attitude)
+    {
+        // Validate
+        if (attitude == null) { throw new InvalidParameterException("attitude cannot be null"); }
+
+        if (!isEnabled()) { return; }
+
+        // Update
+        synchronized (moveContinuousSpeed)
+        {
+            moveContinuousSpeed = new DJIGimbalAttitude();
+            moveContinuousSpeed.pitch = attitude.pitch * 10d;
+            moveContinuousSpeed.roll = attitude.roll * 10d;
+            moveContinuousSpeed.yaw = attitude.yaw * 10d;
+        }
+
+        // Start or stop timer?
+        if ((attitude.pitch == 0) && (attitude.roll == 0) && (attitude.yaw == 0))
+        {
+            // Stop?
+            if (moveContinuousEnabled)
+            {
+                moveContinuousTimer.cancel();
+                moveContinuousTimer = null;
+                moveContinuousEnabled = false;
+            }
+        }
+        else
+        {
+            // Start?
+            if (!moveContinuousEnabled)
+            {
+                moveContinuousEnabled = true;
+                moveContinuousTimer = new Timer();
+                moveContinuousTimer.scheduleAtFixedRate(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        moveContinuousTick();
+                    }
+                }, 0, 1000 / (int) ContinuousUpdatesPerSecond);
+            }
+        }
     }
 
     public void moveRelative(Attitude attitude)
     {
+        // Validate
+        if (attitude == null) { throw new InvalidParameterException("attitude cannot be null"); }
+
         if (!isEnabled()) { return; }
 
-        // Convert to DJI values
-        int dy = (int)Math.round(attitude.yaw) * 10;
-        int dp = (int)Math.round(attitude.pitch) * 10;
-        int dr = (int)Math.round(attitude.roll) * 10;
+        // Scale
+        double pitch = attitude.pitch * 10d;
+        double roll = attitude.roll * 10d;
+        double yaw = attitude.yaw * 10d;
 
-        // Convert angles to actual rotation values
-        boolean enabled = true;
-        boolean directionBackward = true;
-        boolean typeRelative = false;
-        DJIGimbalRotation yaw = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dy);
-        DJIGimbalRotation pitch = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dp);
-        DJIGimbalRotation roll = new DJIGimbalRotation(enabled, directionBackward, typeRelative, dr);
-
-        // Move the gimbal
-        // TODO: what do we do about the target?
-        DJIDrone.getDjiGimbal().updateGimbalAttitude(pitch, roll, yaw);
+        // Move native
+        moveNative(pitch, roll, yaw, true);
     }
 
     @Override
@@ -266,15 +401,36 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
     {
         if (!isEnabled()) { return; }
 
-        // Go to 0,0,0
-        moveAbsolute(new Attitude(0, 0, 0));
+        // Angles determined by testing (not documented)
+        moveAbsolute(new Attitude(77, 0, 63));
     }
 
     @Override
     public void initialize()
     {
         // If already tracking, bail
-        if (initialized) { return; }
+        if (initialized || initializing) { return; }
+
+        // Initializing
+        initializing = true;
+
+        // Get the capacity (min / max values) of the gimbal
+        capabilitiesNative = DJIDrone.getDjiGimbal().getDJIGimbalCapacity();
+
+        // HACK for bug in SDK
+        if (capabilitiesNative == null)
+        {
+            capabilitiesNative = new DJIGimbalCapacity();
+            capabilitiesNative.pitchAvailable = true;
+            capabilitiesNative.rollAvailable = true;
+            capabilitiesNative.yawAvailable = true;
+            capabilitiesNative.minPitchRotationAngle = -2000;
+            capabilitiesNative.maxPitchRotationAngle = 2000;
+            capabilitiesNative.minRollRotationAngle = -2000;
+            capabilitiesNative.maxRollRotationAngle = 2000;
+            capabilitiesNative.minYawRotationAngle = -2000;
+            capabilitiesNative.maxYawRotationAngle = 2000;
+        }
 
         // Set the callback
         DJIDrone.getDjiGimbal().setGimbalUpdateAttitudeCallBack(onGimbalAttitudeUpdate);
@@ -282,14 +438,13 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         // Start the updates
         initialized = DJIDrone.getDjiGimbal().startUpdateTimer(250);
 
+        // No longer initializing
+        initializing = false;
+
         // Update status
         if (initialized)
         {
             StatusUpdater.UpdateStatus(TAG, "Gimbal Tracking Started");
-
-            // Start the move timer to deal with absolute bug
-            targetTimer = new Timer();
-            targetTimer.scheduleAtFixedRate(onMoveTimer, 500, 500);
         }
         else
         {
@@ -309,9 +464,9 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
     @Override
     public Attitude getAttitude()
     {
-        synchronized (attitude)
+        synchronized (currentAttitude)
         {
-            return attitude;
+            return currentAttitude;
         }
     }
 

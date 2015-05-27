@@ -13,13 +13,19 @@ public interface IGimbalControl extends IVehicleService
 
     /**
      * Causes the gimbal to move to the specified attitude.
-     * @param attitude The new attitude to move to.
+     * @param attitude An {@link Attitude} value that indicates the new absolute direction.
      */
     public void moveAbsolute(Attitude attitude);
 
     /**
+     * Causes the gimbal to move to move at a continuous speed.
+     * @param attitude An {@link Attitude} value where each member indicates the number of degrees per second.
+     */
+    public void moveContinuous(Attitude attitude);
+
+    /**
      * Causes the gimbal to move the relative amount.
-     * @param attitude An {@link Attitude} that represents the relative amount to move.
+     * @param attitude An {@link Attitude} value where each member indicates the relative amount to move.
      */
     public void moveRelative(Attitude attitude);
     //endregion

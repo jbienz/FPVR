@@ -3,6 +3,7 @@ package com.solersoft.fpvr;
 import com.solersoft.fpvr.fpvrdji.DJIInspire1Vehicle;
 import com.solersoft.fpvr.fpvrdji.DJIVehicle;
 import com.solersoft.fpvr.fpvrlib.Attitude;
+import com.solersoft.fpvr.fpvrlib.GamepadVehicleController;
 import com.solersoft.fpvr.fpvrlib.Result;
 import com.solersoft.fpvr.fpvrlib.ResultHandler;
 import com.solersoft.fpvr.fpvrlib.StatusListener;
@@ -12,6 +13,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -34,6 +36,7 @@ public class HomeActivity extends Activity
     private boolean connecting;
 
     private DJIVehicle djiVehicle;
+    private GamepadVehicleController gamepadController;
 
     private Button gimbalModeButton;
     private Button gimbalMoveButton;
@@ -56,7 +59,7 @@ public class HomeActivity extends Activity
     private void StartDJI(final boolean inspire)
     {
         // If already connected or initializing just bail
-        if (connected) { return; }
+        if (connected || connecting) { return; }
 
         // Connecting
         connecting = true;
@@ -76,12 +79,20 @@ public class HomeActivity extends Activity
                 {
                     connecting = false;
                     connected = result.isSuccess();
-                    StatusUpdater.UpdateStatus(TAG, "Connect to drone: " + connected);
+                    StatusUpdater.UpdateStatus(TAG, "Connected to drone: " + connected);
+
+                    // If connected, create and initialize controller
+                    if (connected)
+                    {
+                        gamepadController = new GamepadVehicleController(djiVehicle);
+                        gamepadController.initialize();
+                    }
                 }
             });
         }
         else
         {
+            connecting = false;
             throw  new UnsupportedOperationException("Not implemented");
         }
     }
@@ -152,6 +163,15 @@ public class HomeActivity extends Activity
         super.onDestroy();
     }
 
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent event)
+    {
+        // If not initialized then don't process
+        if ((gamepadController == null) || (!gamepadController.isInitialized())) { return false; }
+
+        // Let controller process
+        return gamepadController.handleMotionEvent(event);
+    }
 
     /***************************************************************************
      * Callbacks / Event Handlers
