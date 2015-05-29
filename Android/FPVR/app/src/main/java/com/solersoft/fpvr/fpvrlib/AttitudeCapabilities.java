@@ -34,28 +34,43 @@ public class AttitudeCapabilities
     public float maxPitchAngle = -1.0F;
 
     /**
+     * Gets the maximum pitch speed in degrees per second, if known; otherwise -1.
+     */
+    public double maxPitchSpeed = -1.0F;
+
+    /**
      * Gets the minimum pitch angle, if supported; otherwise -1.
      */
-    public float minPitchAngle = -1.0F;
+    public double minPitchAngle = -1.0F;
 
     /**
      * Gets the maximum roll angle, if supported; otherwise -1.
      */
-    public float maxRollAngle = -1.0F;
+    public double maxRollAngle = -1.0F;
+
+    /**
+     * Gets the maximum roll speed in degrees per second, if known; otherwise -1.
+     */
+    public double maxRollSpeed = -1.0F;
 
     /**
      * Gets the minimum roll angle, if supported; otherwise -1.
      */
-    public float minRollAngle = -1.0F;
+    public double minRollAngle = -1.0F;
 
     /**
      * Gets the maximum yaw angle, if supported; otherwise -1.
      */
-    public float maxYawAngle = -1.0F;
+    public double maxYawAngle = -1.0F;
+
+    /**
+     * Gets the maximum yaw speed in degrees per second, if known; otherwise -1.
+     */
+    public double maxYawSpeed = -1.0F;
 
     /**
      * Gets the minimum yaw angle, if supported; otherwise -1.
      */
-    public float minYawAngle = -1.0F;
+    public double minYawAngle = -1.0F;
     //endregion
 }

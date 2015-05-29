@@ -12,7 +12,7 @@ import java.security.InvalidParameterException;
 public class GamepadVehicleController implements ISupportInitialize
 {
     //region Constants
-    private final double maxDegreesPerSecond = 10;
+    private double maxDegreesPerSecond = 10;
     //endregion
 
     //region Member Variables
@@ -49,9 +49,19 @@ public class GamepadVehicleController implements ISupportInitialize
             if (gimbal != null) { break; }
         }
 
-        // Look for a controller
-        // InputDevice.getDevice(0).
-        // InputManager.InputDeviceListener
+        // If we have a gimbal, try to get capabilities and update max speed
+        if (gimbal != null)
+        {
+            AttitudeCapabilities caps = gimbal.getAttitudeCapabilities();
+            double max = 0;
+            max = Math.max(max, caps.maxPitchSpeed);
+            max = Math.max(max, caps.maxRollSpeed);
+            max = Math.max(max, caps.maxYawSpeed);
+            if (max > 0)
+            {
+                maxDegreesPerSecond = max;
+            }
+        }
     }
 
     public boolean handleMotionEvent(MotionEvent motionEvent)

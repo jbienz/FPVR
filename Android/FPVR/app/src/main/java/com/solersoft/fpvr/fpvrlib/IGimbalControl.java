@@ -3,7 +3,7 @@ package com.solersoft.fpvr.fpvrlib;
 /**
  * Created by jbienz on 5/20/2015.
  */
-public interface IGimbalControl extends IVehicleService
+public interface IGimbalControl extends IGimbalInfo, IVehicleService
 {
     //region Public Methods
     /**

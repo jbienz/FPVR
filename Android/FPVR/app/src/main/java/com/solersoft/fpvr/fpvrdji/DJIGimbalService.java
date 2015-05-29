@@ -126,6 +126,7 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
     private static final String TAG = "DJIGimbalService";
     private static final int DefaultGimbalSpeed = 100;
     private static final int GimbalUpdatesPerSecond = 4;
+    private static final double MaxGimbalSpeed = 18; // 18 degrees per second
     //endregion
 
     //region Member Variables
@@ -174,6 +175,13 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         return roll;
     }
 
+    private double clampSpeed(double speed)
+    {
+        if (speed < -MaxGimbalSpeed) { return -MaxGimbalSpeed; }
+        if (speed > MaxGimbalSpeed) { return MaxGimbalSpeed; }
+        return speed;
+    }
+
     private double clampYaw(double yaw)
     {
         if ((capabilitiesNative == null) || (!capabilitiesNative.yawAvailable)) { return 0; }
@@ -205,25 +213,15 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
     {
         double pitch, roll, yaw = 0;
 
-        // Calculate degrees for this tick
+        // Threadsafe
         synchronized (moveContinuousSpeed)
         {
-            pitch = moveContinuousSpeed.pitch / (double)GimbalUpdatesPerSecond;
-            roll = moveContinuousSpeed.roll / (double)GimbalUpdatesPerSecond;
-            yaw = moveContinuousSpeed.yaw / (double)GimbalUpdatesPerSecond;
+            pitch = moveContinuousSpeed.pitch;
+            roll = moveContinuousSpeed.roll;
+            yaw = moveContinuousSpeed.yaw;
         }
 
-        Log.i(TAG, "Continuous Tick - Pitch DPS: " + moveContinuousSpeed.pitch + " Pitch Move: " + pitch);
-
-        // HACK: Since we don't have speed
-        /*
-        if (pitch > 0) { pitch = 100; }
-        if (pitch < 0) { pitch = -100; }
-        if (roll > 0) { roll = 100; }
-        if (roll < 0) { roll = -100; }
-        if (yaw > 0) { yaw = 100; }
-        if (yaw < 0) { yaw = -100; }
-        */
+        Log.i(TAG, "Continuous Tick - Pitch Speed: " + pitch + " Roll Speed: " + roll + " Yaw Speed: " + yaw);
 
         // Native move
         moveNative(pitch, roll, yaw, true);
@@ -337,7 +335,10 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         verifyInitialized();
         if (capabilities == null)
         {
+            // Create
             capabilities = new AttitudeCapabilities();
+
+            // Copy from native
             capabilities.maxPitchAngle = capabilitiesNative.maxPitchRotationAngle;
             capabilities.maxRollAngle = capabilitiesNative.maxRollRotationAngle;
             capabilities.maxYawAngle = capabilitiesNative.minYawRotationAngle;
@@ -347,6 +348,11 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
             capabilities.pitchAvailable = capabilitiesNative.pitchAvailable;
             capabilities.rollAvailable = capabilitiesNative.rollAvailable;
             capabilities.yawAvailable = capabilitiesNative.yawAvailable;
+
+            // Fill in values not supplied by native
+            capabilities.maxPitchSpeed = MaxGimbalSpeed;
+            capabilities.maxRollSpeed = MaxGimbalSpeed;
+            capabilities.maxYawSpeed = MaxGimbalSpeed;
         }
         return capabilities;
     }
@@ -382,14 +388,6 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
 
         if (!isEnabled()) { return; }
 
-        // Update class variable used in timer ticks
-        synchronized (moveContinuousSpeed)
-        {
-            moveContinuousSpeed.pitch = attitude.pitch * 100d;
-            moveContinuousSpeed.roll = attitude.roll * 100d;
-            moveContinuousSpeed.yaw = attitude.yaw * 100d;
-        }
-
         // Start or stop continuous mode
         if ((attitude.pitch == 0) && (attitude.roll == 0) && (attitude.yaw == 0))
         {
@@ -398,15 +396,30 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         }
         else
         {
+            /*****************************************************************************
+             * Observations:
+             *
+             * Speed is a value between 0 and 255 (on iOS it's uint8)
+             * Top speed (255) is approx equal to 180 units or 18 degrees per second
+             * Duration is always approx 1 second from the time move is called
+             *
+             ****************************************************************************/
+
+            // Clamp
+            double pitchSpeed = clampSpeed(attitude.pitch);
+            double rollSpeed = clampSpeed(attitude.roll);
+            double yawSpeed = clampSpeed(attitude.yaw);
+
+            // Update class variable used in timer ticks
+            synchronized (moveContinuousSpeed)
+            {
+                moveContinuousSpeed.pitch = (pitchSpeed / MaxGimbalSpeed) * 255;
+                moveContinuousSpeed.roll = (rollSpeed / MaxGimbalSpeed) * 255;
+                moveContinuousSpeed.yaw = (yawSpeed / MaxGimbalSpeed) * 255;
+            }
+
             // Start
             moveContinuousEnabled = true;
-
-            // Update speed
-            int pitchSpeed = (int)Math.abs(attitude.pitch * 100d);
-            int rollSpeed = (int)Math.abs(attitude.roll * 100d);
-            int yawSpeed = (int)Math.abs(attitude.yaw * 100d);
-
-            // setGimbalSpeed(pitchSpeed, rollSpeed, yawSpeed);
         }
     }
 
