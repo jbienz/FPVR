@@ -20,9 +20,9 @@ public interface ISupportConnection
 
     //region Public Properties
     /**
-     * Gets a value that indicates if the entity is connected.
-     * @return <code>true</code> if the entity is connected; otherwise <code>false</code>.
+     * Gets a value that indicates the state of the connection.
+     * @return A {@link ConnectionState} that indicates the state of the connection.
      */
-    public boolean isConnected();
+    public ConnectionState getConnectionState();
     //endregion
 }

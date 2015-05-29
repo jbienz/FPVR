@@ -77,8 +77,8 @@ public class HomeActivity extends Activity
                 @Override
                 public void onResult(Result result)
                 {
-                    connecting = false;
                     connected = result.isSuccess();
+                    connecting = false;
                     StatusUpdater.UpdateStatus(TAG, "Connected to drone: " + connected);
 
                     // If connected, create and initialize controller
@@ -200,6 +200,8 @@ public class HomeActivity extends Activity
         {
             if (connected)
             {
+                djiVehicle.getGimbal().moveToFPV();
+                /*
                 HomeActivity.this.view = HomeActivity.this.view + 1;
                 if (HomeActivity.this.view > 2) { HomeActivity.this.view = 0; }
 
@@ -217,6 +219,7 @@ public class HomeActivity extends Activity
                 }
 
                 // djiVehicle.getGimbal().moveAbsolute(new Attitude(r,0,0));
+                */
             }
         }
     };

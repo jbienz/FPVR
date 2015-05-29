@@ -3,15 +3,18 @@ package com.solersoft.fpvr.fpvrdji;
 import android.util.Log;
 
 import com.solersoft.fpvr.fpvrlib.*;
+import com.solersoft.fpvr.util.DJI;
 
 import java.security.InvalidParameterException;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import dji.sdk.api.DJIDrone;
+import dji.sdk.api.DJIError;
 import dji.sdk.api.Gimbal.DJIGimbalAttitude;
 import dji.sdk.api.Gimbal.DJIGimbalCapacity;
 import dji.sdk.api.Gimbal.DJIGimbalRotation;
+import dji.sdk.interfaces.DJIExecuteResultCallback;
 import dji.sdk.interfaces.DJIGimbalUpdateAttitudeCallBack;
 
 /**
@@ -121,7 +124,8 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
 
     //region Constants
     private static final String TAG = "DJIGimbalService";
-    private static double ContinuousUpdatesPerSecond = 4;
+    private static final int DefaultGimbalSpeed = 100;
+    private static final int GimbalUpdatesPerSecond = 4;
     //endregion
 
     //region Member Variables
@@ -199,21 +203,28 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
 
     private void moveContinuousTick()
     {
-        if (!moveContinuousEnabled) { return; }
+        double pitch, roll, yaw = 0;
 
         // Calculate degrees for this tick
-        double pitch = moveContinuousSpeed.pitch / ContinuousUpdatesPerSecond;
-        double roll = moveContinuousSpeed.roll / ContinuousUpdatesPerSecond;
-        double yaw = moveContinuousSpeed.yaw / ContinuousUpdatesPerSecond;
+        synchronized (moveContinuousSpeed)
+        {
+            pitch = moveContinuousSpeed.pitch / (double)GimbalUpdatesPerSecond;
+            roll = moveContinuousSpeed.roll / (double)GimbalUpdatesPerSecond;
+            yaw = moveContinuousSpeed.yaw / (double)GimbalUpdatesPerSecond;
+        }
+
+        Log.i(TAG, "Continuous Tick - Pitch DPS: " + moveContinuousSpeed.pitch + " Pitch Move: " + pitch);
 
         // HACK: Since we don't have speed
+        /*
         if (pitch > 0) { pitch = 100; }
         if (pitch < 0) { pitch = -100; }
         if (roll > 0) { roll = 100; }
         if (roll < 0) { roll = -100; }
         if (yaw > 0) { yaw = 100; }
         if (yaw < 0) { yaw = -100; }
-        
+        */
+
         // Native move
         moveNative(pitch, roll, yaw, true);
     }
@@ -248,7 +259,28 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         DJIGimbalRotation yr = new DJIGimbalRotation(enabled, directionBackward, relative, ys);
 
         // Move the gimbal
+        Log.i(TAG, "Native Move: PS: " + ps + " RS: " + rs + " YS: " + ys);
         DJIDrone.getDjiGimbal().updateGimbalAttitude(pr, rr, yr);
+    }
+
+    private void setGimbalSpeed(int pitchSpeed, int rollSpeed, int yawSpeed)
+    {
+        // Make sure enabled
+        if (!isEnabled()) { return; }
+
+        // Set Gimbal Move Speed
+        Log.i(TAG, "Updating gimbal speed: P: " + pitchSpeed + " R: " + rollSpeed + " Y: " + yawSpeed);
+        DJIDrone.getDjiRemoteController().setGimbalControlSpeed(pitchSpeed, rollSpeed, yawSpeed, new DJIExecuteResultCallback()
+        {
+            @Override
+            public void onResult(DJIError djiError)
+            {
+                if (!DJI.Success(djiError.errorCode))
+                {
+                    StatusUpdater.UpdateStatus(TAG, "Could not update gimbal speed: " + djiError.errorDescription);
+                }
+            }
+        });
     }
 
     private void verifyInitialized()
@@ -263,15 +295,24 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         @Override
         public void onResult(final DJIGimbalAttitude a)
         {
+            // Update variables
             synchronized (currentAttitudeNative)
             {
                 currentAttitudeNative = a;
             }
             synchronized (currentAttitude)
             {
-                Log.d("GimbalUpdate", "p: " + a.pitch + " r: " + a.roll + " y: " + a.yaw);
+                Log.i("GimbalUpdate", "p: " + a.pitch + " r: " + a.roll + " y: " + a.yaw);
                 currentAttitude = new Attitude(a.pitch / 10, a.roll / 10, a.yaw / 10);
             }
+
+            // If in continuous mode, call a continuous tick
+            if (moveContinuousEnabled)
+            {
+                moveContinuousTick();
+            }
+
+            // If listeners, notify
             if (listener != null)
             {
                 listener.onAttitudeChanged(DJIGimbalService.this);
@@ -341,42 +382,31 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
 
         if (!isEnabled()) { return; }
 
-        // Update
+        // Update class variable used in timer ticks
         synchronized (moveContinuousSpeed)
         {
-            moveContinuousSpeed = new DJIGimbalAttitude();
-            moveContinuousSpeed.pitch = attitude.pitch * 10d;
-            moveContinuousSpeed.roll = attitude.roll * 10d;
-            moveContinuousSpeed.yaw = attitude.yaw * 10d;
+            moveContinuousSpeed.pitch = attitude.pitch * 100d;
+            moveContinuousSpeed.roll = attitude.roll * 100d;
+            moveContinuousSpeed.yaw = attitude.yaw * 100d;
         }
 
-        // Start or stop timer?
+        // Start or stop continuous mode
         if ((attitude.pitch == 0) && (attitude.roll == 0) && (attitude.yaw == 0))
         {
-            // Stop?
-            if (moveContinuousEnabled)
-            {
-                moveContinuousTimer.cancel();
-                moveContinuousTimer = null;
-                moveContinuousEnabled = false;
-            }
+            // Stop
+            moveContinuousEnabled = false;
         }
         else
         {
-            // Start?
-            if (!moveContinuousEnabled)
-            {
-                moveContinuousEnabled = true;
-                moveContinuousTimer = new Timer();
-                moveContinuousTimer.scheduleAtFixedRate(new TimerTask()
-                {
-                    @Override
-                    public void run()
-                    {
-                        moveContinuousTick();
-                    }
-                }, 0, 1000 / (int) ContinuousUpdatesPerSecond);
-            }
+            // Start
+            moveContinuousEnabled = true;
+
+            // Update speed
+            int pitchSpeed = (int)Math.abs(attitude.pitch * 100d);
+            int rollSpeed = (int)Math.abs(attitude.roll * 100d);
+            int yawSpeed = (int)Math.abs(attitude.yaw * 100d);
+
+            // setGimbalSpeed(pitchSpeed, rollSpeed, yawSpeed);
         }
     }
 
@@ -392,17 +422,72 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         double roll = attitude.roll * 10d;
         double yaw = attitude.yaw * 10d;
 
+        // Return to default speed
+        Log.i(TAG, "Returning gimbal to default speed.");
+        setGimbalSpeed(DefaultGimbalSpeed, DefaultGimbalSpeed, DefaultGimbalSpeed);
+
         // Move native
         moveNative(pitch, roll, yaw, true);
     }
 
+    private int moveDegrees = 0;
+    private double moveTarget = -999;
     @Override
     public void moveToFPV()
     {
         if (!isEnabled()) { return; }
 
+        if (moveDegrees == 0)
+        {
+            moveDegrees = 10;
+        }
+        else if (moveDegrees == 10)
+        {
+            moveDegrees = 20;
+        }
+        else if (moveDegrees == 20)
+        {
+            moveDegrees = 50;
+        }
+        else if (moveDegrees == 50)
+        {
+            moveDegrees = 100;
+        }
+        else if (moveDegrees == 100)
+        {
+            moveDegrees = 500;
+        }
+        else if (moveDegrees == 500)
+        {
+            moveDegrees = 1000;
+        }
+        else if (moveDegrees == 1000)
+        {
+            moveDegrees = 2000;
+        }
+        else if (moveDegrees == 2000)
+        {
+            moveDegrees = 5000;
+        }
+
+        /*
+        if (moveTarget == -999)
+        {
+            moveTarget = 999;
+        }
+        else
+        {
+            moveTarget = -999;
+        }
+        */
+
+
+        Log.i(TAG, "MOVE TEST -- Degrees: " + moveDegrees);
+        // setGimbalSpeed(moveDegrees, moveDegrees, moveDegrees);
+        moveNative(moveTarget, 0d, 0d, true);
+
         // Angles determined by testing (not documented)
-        moveAbsolute(new Attitude(77, 0, 63));
+        // moveAbsolute(new Attitude(77, 0, 63));
     }
 
     @Override
@@ -436,7 +521,7 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         DJIDrone.getDjiGimbal().setGimbalUpdateAttitudeCallBack(onGimbalAttitudeUpdate);
 
         // Start the updates
-        initialized = DJIDrone.getDjiGimbal().startUpdateTimer(250);
+        initialized = DJIDrone.getDjiGimbal().startUpdateTimer(1000 / GimbalUpdatesPerSecond);
 
         // No longer initializing
         initializing = false;

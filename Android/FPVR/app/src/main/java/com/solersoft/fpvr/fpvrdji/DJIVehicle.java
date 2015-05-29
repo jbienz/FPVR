@@ -2,6 +2,7 @@ package com.solersoft.fpvr.fpvrdji;
 
 import android.content.Context;
 
+import com.solersoft.fpvr.fpvrlib.ConnectionState;
 import com.solersoft.fpvr.fpvrlib.ISupportConnection;
 import com.solersoft.fpvr.fpvrlib.IVehicle;
 import com.solersoft.fpvr.fpvrlib.IVehicleService;
@@ -31,11 +32,12 @@ public abstract class DJIVehicle implements IVehicle, ISupportConnection
     private static final String TAG = "DJIVehicle";
 
     //region Member Variables
-    private boolean connected;
-    private boolean connecting;
+    private boolean connectedToDrone = false;
+    private ConnectionState connectionState = ConnectionState.Disconnected;
     private Context context;
     private DJIDroneType droneType;
     private DJIGimbalService gimbal;
+    private boolean initialized = false;
     private Collection<IVehicleService> services;
     private boolean validated;
     //endregion
@@ -69,32 +71,44 @@ public abstract class DJIVehicle implements IVehicle, ISupportConnection
     public void connect(final ResultHandler handler)
     {
         // If already connected or connecting just bail
-        if (connected || connecting) { return; }
+        if (connectionState == ConnectionState.Connected || connectionState == ConnectionState.Connecting) { return; }
 
-        // Initializing
-        connecting = true;
+        // Connecting
+        connectionState = ConnectionState.Connecting;
 
         try
         {
-            StatusUpdater.UpdateStatus(TAG, "Initializing...");
-            DJIDrone.initWithType(context, droneType);
+            // If not already initialized, initialize
+            if (!initialized)
+            {
+                StatusUpdater.UpdateStatus(TAG, "Initializing...");
+                initialized = DJIDrone.initWithType(context, droneType);
+            }
 
-            StatusUpdater.UpdateStatus(TAG, "Connecting...");
-            connected = DJIDrone.connectToDrone();
+            // Update status and bail if not initialized
+            if (!initialized)
+            {
+                StatusUpdater.UpdateStatus(TAG, "Unable to initialize as type " + droneType);
+                connectionState = ConnectionState.Disconnected;
+                if (handler != null) { handler.onResult(new Result(false));}
+                return;
+            }
 
-            // Update status and bail if not OK
-            if (!connected)
+            StatusUpdater.UpdateStatus(TAG, "Connecting to drone...");
+            connectedToDrone = DJIDrone.connectToDrone();
+
+            // Update status and bail if not connected
+            if (!connectedToDrone)
             {
                 StatusUpdater.UpdateStatus(TAG, "Unable to connect to drone.");
-                connecting = false;
+                connectionState = ConnectionState.Disconnected;
+                if (handler != null) { handler.onResult(new Result(false));}
                 return;
             }
 
             StatusUpdater.UpdateStatus(TAG, "Checking permissions...");
-
             DJIDrone.checkPermission(context, new DJIGerneralListener()
             {
-
                 @Override
                 public void onGetPermissionResult(int result)
                 {
@@ -105,48 +119,60 @@ public abstract class DJIVehicle implements IVehicle, ISupportConnection
                     String desc = DJIError.getCheckPermissionErrorDescription(result);
                     StatusUpdater.UpdateStatus(TAG, "Permissions: " + desc);
 
-                    // If validated, initialize child services
+                    // Done connecting
                     if (validated)
                     {
+                        // Initialize child services
                         gimbal.initialize();
+
+                        // Connected
+                        connectionState = ConnectionState.Connected;
+
+                        // Notify listener
+                        if (handler != null) { handler.onResult(new Result(true));}
                     }
-
-                    // Done connecting
-                    connecting = false;
-
-                    // Notify callback
-                    if (handler != null)
+                    else
                     {
-                        handler.onResult(new Result(validated));
+                        // Failed validation. Disconnect to close connection and set proper state
+                        disconnect();
+
+                        // Notify listener
+                        if (handler != null) { handler.onResult(new Result(false));}
                     }
                 }
             });
         }
         catch (Exception e)
         {
-            StatusUpdater.UpdateStatus(TAG, "Unable to initialize: " + e.getMessage());
+            StatusUpdater.UpdateStatus(TAG, "Unable to connect: " + e.getMessage());
             e.printStackTrace();
-            connecting = false;
 
-            // Notify callback
-            if (handler != null)
-            {
-                handler.onResult(new Result(e));
-            }
+            // Disconnect to close connection and set proper state
+            disconnect();
+
+            // Notify listener
+            if (handler != null) { handler.onResult(new Result(e));}
         }
     }
 
     public void disconnect()
     {
-        if (connected)
+        if (connectedToDrone)
         {
             DJIDrone.disconnectToDrone();
-            connected = false;
+            connectedToDrone = false;
         }
+        connectionState = connectionState.Disconnected;
     }
     //endregion
 
     //region Public Properties
+    @Override
+    public ConnectionState getConnectionState()
+    {
+        return connectionState;
+    }
+
     public DJIGimbalService getGimbal()
     {
         return gimbal;
@@ -156,12 +182,6 @@ public abstract class DJIVehicle implements IVehicle, ISupportConnection
     public Collection<IVehicleService> getServices()
     {
         return services;
-    }
-
-    @Override
-    public boolean isConnected()
-    {
-        return connected;
     }
     //endregion
 }
