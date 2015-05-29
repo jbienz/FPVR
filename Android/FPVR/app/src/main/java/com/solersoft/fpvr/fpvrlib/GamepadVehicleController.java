@@ -80,16 +80,19 @@ public class GamepadVehicleController implements ISupportInitialize
 
         // How much rotation?
         // TODO: Take into account deadzones via InputDevice.MotionRange.getFlat()
+        float xflat = motionEvent.getDevice().getMotionRange(MotionEvent.AXIS_X).getFlat();
         float zflat = motionEvent.getDevice().getMotionRange(MotionEvent.AXIS_Z).getFlat();
         float rzflat = motionEvent.getDevice().getMotionRange(MotionEvent.AXIS_RZ).getFlat();
+        float x = motionEvent.getAxisValue(MotionEvent.AXIS_X);
         float z = motionEvent.getAxisValue(MotionEvent.AXIS_Z);
         float rz = motionEvent.getAxisValue(MotionEvent.AXIS_RZ);
 
+        if (Math.abs(x) < xflat) { x = 0; }
         if (Math.abs(z) < zflat) { z = 0; }
         if (Math.abs(rz) < rzflat) { rz = 0; }
 
         // Calc speed per axis
-        Attitude att = new Attitude(rz * maxDegreesPerSecond, 0, z * maxDegreesPerSecond);
+        Attitude att = new Attitude(rz * maxDegreesPerSecond, x * maxDegreesPerSecond, z * maxDegreesPerSecond);
 
         // Update constant motion
         gimbal.moveContinuous(att);

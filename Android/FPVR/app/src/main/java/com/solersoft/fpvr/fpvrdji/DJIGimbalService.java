@@ -414,8 +414,8 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
             synchronized (moveContinuousSpeed)
             {
                 moveContinuousSpeed.pitch = (pitchSpeed / MaxGimbalSpeed) * 255;
-                moveContinuousSpeed.roll = (rollSpeed / MaxGimbalSpeed) * 255;
-                moveContinuousSpeed.yaw = (yawSpeed / MaxGimbalSpeed) * 255;
+                moveContinuousSpeed.roll = (-rollSpeed / MaxGimbalSpeed) * 255; // Roll is inverted
+                moveContinuousSpeed.yaw = (-yawSpeed / MaxGimbalSpeed) * 255; // Yaw is inverted
             }
 
             // Start
