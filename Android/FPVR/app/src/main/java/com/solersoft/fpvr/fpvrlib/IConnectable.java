@@ -3,7 +3,7 @@ package com.solersoft.fpvr.fpvrlib;
 /**
  * The interface for an object that supports connecting and disconnecting.
  */
-public interface ISupportConnection
+public interface IConnectable
 {
     //region Public Methods
     /**

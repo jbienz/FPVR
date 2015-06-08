@@ -6,4 +6,7 @@
     <string name="gimbalStart_button">Start Gimbal</string>
     <string name="gimbalMove_button">Move Gimbal</string>
     <string name="GimbalModeButton">Gimbal Mode</string>
+    <string name="yawLabel">yaw</string>
+    <string name="pithcLabel">pitch</string>
+    <string name="rollLabel">roll</string>
 </resources>

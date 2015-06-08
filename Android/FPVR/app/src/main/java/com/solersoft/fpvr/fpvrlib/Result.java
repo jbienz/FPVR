@@ -37,6 +37,26 @@ public class Result
     }
     //endregion
 
+    @Override
+    public String toString()
+    {
+        if (success)
+        {
+            return "Success";
+        }
+        else
+        {
+            if (exception != null)
+            {
+                return "Error: " + exception.getMessage();
+            }
+            else
+            {
+                return "Unknown error";
+            }
+        }
+    }
+
     //region Public Properties
     /**
      * Gets the exception, if any, thrown during execution.

@@ -3,7 +3,6 @@ package com.solersoft.fpvr.fpvrdji;
 import android.content.Context;
 import android.util.Log;
 
-import com.solersoft.fpvr.fpvrlib.ISupportInitialize;
 import com.solersoft.fpvr.fpvrlib.IVehicle;
 import com.solersoft.fpvr.fpvrlib.IVehicleService;
 import com.solersoft.fpvr.util.DJI;

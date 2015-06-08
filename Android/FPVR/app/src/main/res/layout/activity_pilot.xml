@@ -15,6 +15,12 @@
     <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent"
         android:fitsSystemWindows="true">
 
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/cameraLayout">
+        </FrameLayout>
+
         <TextView
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
@@ -24,36 +30,40 @@
             android:gravity="fill_horizontal"
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
-            android:layout_marginTop="10dp" />
+            android:layout_marginTop="10dp"
+            android:textColor="@color/primary_text_default_material_dark"/>
 
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="left|center_vertical"
-            android:gravity="left|center"
+            android:gravity="center|start"
             android:id="@+id/gimbalPitchLayout">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:text="Medium Text"
-                android:id="@+id/yawLabel" />
+                android:text="@string/yawLabel"
+                android:id="@+id/yawLabel"
+                android:textColor="@color/primary_text_default_material_dark"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:text="Medium Text"
-                android:id="@+id/pitchLabel" />
+                android:id="@+id/pitchLabel"
+                android:textColor="@color/primary_text_default_material_dark"
+                android:text="@string/pithcLabel"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:text="Medium Text"
-                android:id="@+id/rollLabel" />
+                android:text="@string/rollLabel"
+                android:id="@+id/rollLabel"
+                android:textColor="@color/primary_text_default_material_dark"/>
         </LinearLayout>
 
         <LinearLayout

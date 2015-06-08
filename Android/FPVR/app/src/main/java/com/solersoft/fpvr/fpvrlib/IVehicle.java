@@ -9,7 +9,7 @@ import java.util.Collection;
 /**
  * The interface that represents a single vehicle or aircraft.
  */
-public interface IVehicle
+public interface IVehicle extends ILifecycleAware, IConnectable
 {
     //region Public Properties
     /**

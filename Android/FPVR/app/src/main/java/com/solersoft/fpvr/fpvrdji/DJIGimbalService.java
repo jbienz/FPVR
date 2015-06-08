@@ -11,6 +11,7 @@ import java.util.TimerTask;
 
 import dji.sdk.api.DJIDrone;
 import dji.sdk.api.DJIError;
+import dji.sdk.api.Gimbal.DJIGimbal;
 import dji.sdk.api.Gimbal.DJIGimbalAttitude;
 import dji.sdk.api.Gimbal.DJIGimbalCapacity;
 import dji.sdk.api.Gimbal.DJIGimbalRotation;
@@ -20,7 +21,7 @@ import dji.sdk.interfaces.DJIGimbalUpdateAttitudeCallBack;
 /**
  * An implementation of the {@link IGimbalControl} interface for DJI Aircraft.
  */
-public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportInitialize
+public class DJIGimbalService extends Connectable implements IGimbalControl, IGimbalInfo
 {
     /*
     private boolean fpv = false;
@@ -134,8 +135,6 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
     private DJIGimbalAttitude currentAttitudeNative = new DJIGimbalAttitude();
     private AttitudeCapabilities capabilities;
     private DJIGimbalCapacity capabilitiesNative;
-    private boolean initialized;
-    private boolean initializing;
     private GimbalListener listener;
     private DJIGimbalAttitude moveAbsoluteTarget = new DJIGimbalAttitude();
     private Timer moveAbsoluteTimer;
@@ -280,12 +279,57 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
             }
         });
     }
+    //endregion
 
-    private void verifyInitialized()
+    //region Overrides
+    @Override
+    protected void onConnect(ResultHandler handler)
     {
-        if (!initialized) { throw new UnsupportedOperationException("This member cannot be called before the class is initialized."); }
+        // Get the gimbal
+        DJIGimbal nativeGimbal = DJIDrone.getDjiGimbal();
+
+        // Get the capacity (min / max values) of the gimbal
+        capabilitiesNative = nativeGimbal.getDJIGimbalCapacity();
+
+        // HACK for bug in SDK
+        if (capabilitiesNative == null)
+        {
+            capabilitiesNative = new DJIGimbalCapacity();
+            capabilitiesNative.pitchAvailable = true;
+            capabilitiesNative.rollAvailable = true;
+            capabilitiesNative.yawAvailable = true;
+            capabilitiesNative.minPitchRotationAngle = -2000;
+            capabilitiesNative.maxPitchRotationAngle = 2000;
+            capabilitiesNative.minRollRotationAngle = -2000;
+            capabilitiesNative.maxRollRotationAngle = 2000;
+            capabilitiesNative.minYawRotationAngle = -2000;
+            capabilitiesNative.maxYawRotationAngle = 2000;
+        }
+
+        // Set the callback
+        nativeGimbal.setGimbalUpdateAttitudeCallBack(onGimbalAttitudeUpdate);
+
+        // Start the updates
+        boolean started = nativeGimbal.startUpdateTimer(1000 / GimbalUpdatesPerSecond);
+
+        // Update status
+        if (started)
+        {
+            StatusUpdater.UpdateStatus(TAG, "Gimbal Tracking Started");
+        }
+        else
+        {
+            StatusUpdater.UpdateStatus(TAG, "Gimbal Tracking was unable to start");
+        }
+
+        // If handler, notify
+        if (handler != null)
+        {
+            handler.onResult(new Result(started));
+        }
     }
     //endregion
+
 
     //region Callbacks / Event Handlers
     DJIGimbalUpdateAttitudeCallBack onGimbalAttitudeUpdate = new DJIGimbalUpdateAttitudeCallBack()
@@ -332,7 +376,7 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
     @Override
     public AttitudeCapabilities getAttitudeCapabilities()
     {
-        verifyInitialized();
+        verifyCreated();
         if (capabilities == null)
         {
             // Create
@@ -504,53 +548,6 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
     }
 
     @Override
-    public void initialize()
-    {
-        // If already tracking, bail
-        if (initialized || initializing) { return; }
-
-        // Initializing
-        initializing = true;
-
-        // Get the capacity (min / max values) of the gimbal
-        capabilitiesNative = DJIDrone.getDjiGimbal().getDJIGimbalCapacity();
-
-        // HACK for bug in SDK
-        if (capabilitiesNative == null)
-        {
-            capabilitiesNative = new DJIGimbalCapacity();
-            capabilitiesNative.pitchAvailable = true;
-            capabilitiesNative.rollAvailable = true;
-            capabilitiesNative.yawAvailable = true;
-            capabilitiesNative.minPitchRotationAngle = -2000;
-            capabilitiesNative.maxPitchRotationAngle = 2000;
-            capabilitiesNative.minRollRotationAngle = -2000;
-            capabilitiesNative.maxRollRotationAngle = 2000;
-            capabilitiesNative.minYawRotationAngle = -2000;
-            capabilitiesNative.maxYawRotationAngle = 2000;
-        }
-
-        // Set the callback
-        DJIDrone.getDjiGimbal().setGimbalUpdateAttitudeCallBack(onGimbalAttitudeUpdate);
-
-        // Start the updates
-        initialized = DJIDrone.getDjiGimbal().startUpdateTimer(1000 / GimbalUpdatesPerSecond);
-
-        // No longer initializing
-        initializing = false;
-
-        // Update status
-        if (initialized)
-        {
-            StatusUpdater.UpdateStatus(TAG, "Gimbal Tracking Started");
-        }
-        else
-        {
-            StatusUpdater.UpdateStatus(TAG, "Gimbal Tracking was unable to start");
-        }
-    }
-
-    @Override
     public void setGimbalListener(GimbalListener l)
     {
         listener = l;
@@ -568,16 +565,9 @@ public class DJIGimbalService implements IGimbalControl, IGimbalInfo, ISupportIn
         }
     }
 
-    @Override
     public boolean isEnabled()
     {
-        return initialized;
-    }
-
-    @Override
-    public boolean isInitialized()
-    {
-        return initialized;
+        return true;
     }
     //endregion
 }
