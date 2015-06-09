@@ -3,7 +3,7 @@ package com.solersoft.fpvr.fpvrlib;
 /**
  * The interface for a class that provides speed information.
  */
-public interface ISpeedInfo
+public interface ISpeedInfo extends IVehicleService
 {
     //region Public Properties
     /**

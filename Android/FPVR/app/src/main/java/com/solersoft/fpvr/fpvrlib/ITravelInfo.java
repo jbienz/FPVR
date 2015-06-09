@@ -3,7 +3,7 @@ package com.solersoft.fpvr.fpvrlib;
 /**
  * Provides orientation information a vehicles direction of travel.
  */
-public interface ITravelInfo
+public interface ITravelInfo extends IVehicleService
 {
     /**
      * Gets information about the vehicles direction of travel.

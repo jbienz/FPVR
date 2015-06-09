@@ -3,7 +3,7 @@ package com.solersoft.fpvr.fpvrlib;
 /**
  * The interface for reading gimbal state
  */
-public interface IGimbalInfo
+public interface IGimbalInfo extends IVehicleService
 {
     //region Public Methods
     /**

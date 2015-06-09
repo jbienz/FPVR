@@ -9,4 +9,9 @@
         <attr name="metaButtonBarButtonStyle" format="reference" />
     </declare-styleable>
 
+    <declare-styleable name="BatteryLifeView">
+        <attr name="criticalPercent" format="float" />
+        <attr name="lowPercent" format="float" />
+        <attr name="remainingPercent" format="float" />
+    </declare-styleable>
 </resources>

@@ -3,7 +3,7 @@ package com.solersoft.fpvr.fpvrlib;
 /**
  * Provides information from a GPS sensor.
  */
-public interface IGPSInfo
+public interface IGPSInfo extends IVehicleService
 {
     //region Public Properties
     /**

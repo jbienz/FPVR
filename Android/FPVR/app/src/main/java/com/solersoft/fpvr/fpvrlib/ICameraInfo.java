@@ -5,7 +5,7 @@ import android.view.View;
 /**
  * The interface for reading information about a camera on a vehicle.
  */
-public interface ICameraInfo
+public interface ICameraInfo extends IVehicleService
 {
     //region Public Properties
     /**

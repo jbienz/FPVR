@@ -65,7 +65,7 @@ public class LifecycleAware implements ILifecycleAware
                 // If handler notify
                 if (handler != null)
                 {
-                    handler.onResult(new Result(created));
+                    handler.onResult(result);
                 }
             }
         });

@@ -37,6 +37,7 @@ public abstract class DJIVehicle extends Vehicle
     private static final String TAG = "DJIVehicle";
 
     //region Member Variables
+    private DJIBatteryService battery;
     private DJICameraService camera;
     private boolean connectedToDrone;
     private Context context;
@@ -63,9 +64,11 @@ public abstract class DJIVehicle extends Vehicle
 
         // Create and add child services
         Collection<IVehicleService> services = getServices();
+        battery = new DJIBatteryService();
         camera = new DJICameraService(context);
         gimbal = new DJIGimbalService();
 
+        services.add(battery);
         services.add(camera);
         services.add(gimbal);
     }
@@ -147,7 +150,7 @@ public abstract class DJIVehicle extends Vehicle
                             else
                             {
                                 // Notify listener
-                                if (handler != null) { handler.onResult(new Result(false)); }
+                                if (handler != null) { handler.onResult(new Result(false, desc)); }
                             }
                         }
                     });

@@ -10,6 +10,7 @@ public class Result
     //region Member Variables
     private Exception exception;
     private boolean success;
+    private String statusMessage;
     //endregion
 
     //region Constructors
@@ -20,6 +21,16 @@ public class Result
     public Result(boolean success)
     {
         this.success = success;
+    }
+
+    /**
+     * Initializes a new {@link Result} based on success and a status message.
+     * @param success Whether or not the result is successful.
+     */
+    public Result(boolean success, String statusMessage)
+    {
+        this.success = success;
+        this.statusMessage = statusMessage;
     }
 
     /**
@@ -40,21 +51,7 @@ public class Result
     @Override
     public String toString()
     {
-        if (success)
-        {
-            return "Success";
-        }
-        else
-        {
-            if (exception != null)
-            {
-                return "Error: " + exception.getMessage();
-            }
-            else
-            {
-                return "Unknown error";
-            }
-        }
+        return getStatusMessage();
     }
 
     //region Public Properties
@@ -74,6 +71,30 @@ public class Result
     public boolean isSuccess()
     {
         return success;
+    }
+
+    /**
+     * Gets a value that indicates the status of the result.
+     * @return a string that indicates the status of the result.
+     */
+    public String getStatusMessage()
+    {
+        if (statusMessage != null)
+        {
+            return statusMessage;
+        }
+        else if (success)
+        {
+            return "Success";
+        }
+        else if (exception != null)
+        {
+            return "Error: " + exception.getMessage();
+        }
+        else
+        {
+            return "Unknown error";
+        }
     }
     //endregion
 }

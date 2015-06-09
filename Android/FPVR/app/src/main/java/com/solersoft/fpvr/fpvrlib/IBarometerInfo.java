@@ -3,7 +3,7 @@ package com.solersoft.fpvr.fpvrlib;
 /**
  * Provides information from a barometric sensor.
  */
-public interface IBarometerInfo
+public interface IBarometerInfo extends IVehicleService
 {
     //region Public Properties
     /**

@@ -1,9 +1,11 @@
 package com.solersoft.fpvr.fpvrlib;
 
+import java.util.Collection;
+
 /**
  * Provides information about battery levels and health.
  */
-public interface IBatteryInfo
+public interface IBatteryInfo extends IVehicleService
 {
     //region Public Methods
     /**
@@ -15,22 +17,28 @@ public interface IBatteryInfo
 
     //region Public Properties
     /**
-     * Gets the percentage of total capacity at which the aircraft will automatically land.
-     * @return The percentage at which the aircraft will automatically land or -1 if the value is not available.
+     * Gets the percentage of remaining power at which the battery should be considered critical.
+     * @return The percentage of remaining power at which the battery should be considered critical.
      */
-    public double getAutoLandPercent();
+    public double getCriticalPercent();
+
+    /**
+     * Gets the collection of events that happen at various battery levels.
+     * @return the collection of events that happen at various battery levels.
+     */
+    public Collection<BatteryLevelEvent> getLevelEvents();
+
+    /**
+     * Gets the percentage of remaining power at which the battery should be considered low.
+     * @return The percentage of remaining power at which the battery should be considered low.
+     */
+    public double getLowPercent();
 
     /**
      * Gets the remaining power in the battery as a percentage of total capacity.
      * @return The remaining power in the battery as a percentage of total capacity.
      */
     public double getRemainingPercent();
-
-    /**
-     * Gets the percentage of total capacity at which the aircraft will automatically return home.
-     * @return The percentage at which the aircraft will return home or -1 if the value is not available.
-     */
-    public double getReturnHomePercent();
 
     /**
      * Gets the overall battery level in millivolts. If the vehicle has more than one cell, this is the average or the sum of all cells.

@@ -1,10 +1,13 @@
 package com.solersoft.fpvr;
 
+import com.solersoft.fpvr.controls.BatteryLifeView;
 import com.solersoft.fpvr.fpvrdji.DJIInspire1Vehicle;
 import com.solersoft.fpvr.fpvrlib.Attitude;
+import com.solersoft.fpvr.fpvrlib.BatteryListener;
 import com.solersoft.fpvr.fpvrlib.ConnectionState;
 import com.solersoft.fpvr.fpvrlib.GamepadGimbalController;
 import com.solersoft.fpvr.fpvrlib.GimbalListener;
+import com.solersoft.fpvr.fpvrlib.IBatteryInfo;
 import com.solersoft.fpvr.fpvrlib.ICameraInfo;
 import com.solersoft.fpvr.fpvrlib.IGimbalControl;
 import com.solersoft.fpvr.fpvrlib.IGimbalInfo;
@@ -22,6 +25,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -55,6 +60,7 @@ public class PilotActivity extends Activity
     private TextView pitchLabel;
     private TextView rollLabel;
 
+    private BatteryLifeView batteryLifeView;
 
     /***************************************************************************
      * Internal Methods
@@ -93,6 +99,13 @@ public class PilotActivity extends Activity
         // This thread is the UI thread
         ThreadUtils.setUiThread();
 
+        // Remove title bar
+        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        // Remove notification bar
+        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        // Set content view AFTER ABOVE sequence (to avoid crash)
         setContentView(R.layout.activity_pilot);
 
         cameraLayout = (FrameLayout) findViewById(R.id.cameraLayout);
@@ -130,6 +143,9 @@ public class PilotActivity extends Activity
             }
         });
 
+        // Special views
+        batteryLifeView = (BatteryLifeView) findViewById(R.id.batteryLifeView);
+
         // Create the vehicle
         createVehicle(true, new ResultHandler()
         {
@@ -139,10 +155,19 @@ public class PilotActivity extends Activity
                 // Problem?
                 if (!result.isSuccess())
                 {
-                    StatusUpdater.UpdateStatus(TAG, "Error creating vehicle");
+                    StatusUpdater.UpdateStatus(TAG, "Error creating vehicle: " + result);
                 }
                 else
                 {
+                    StatusUpdater.UpdateStatus(TAG, "Attempting to start battery monitor");
+
+                    // Try to get camera service
+                    IBatteryInfo battery = CollectionUtils.findFirst(IBatteryInfo.class, vehicle.getServices());
+                    if (battery != null)
+                    {
+                        battery.setBatteryListener(batteryListener);
+                    }
+
                     StatusUpdater.UpdateStatus(TAG, "Attempting to start camera preview");
 
                     // Try to get camera service
@@ -208,6 +233,16 @@ public class PilotActivity extends Activity
     /***************************************************************************
      * Callbacks / Event Handlers
      ***************************************************************************/
+    private BatteryListener batteryListener = new BatteryListener()
+    {
+        @Override
+        public void onBatteryChanged(IBatteryInfo battery)
+        {
+            batteryLifeView.setCriticalPercent((float)battery.getCriticalPercent());
+            batteryLifeView.setLowPercent((float)battery.getLowPercent());
+            batteryLifeView.setRemainingPercent((float)battery.getRemainingPercent());
+        }
+    };
 
     /*
     GimbalListener gimbalListener = new GimbalListener()
@@ -232,7 +267,7 @@ public class PilotActivity extends Activity
     /**
      * Called when the Start Gimbal mode button is clicked
      */
-    View.OnClickListener gimbalModeButtonOnClick = new View.OnClickListener()
+    private View.OnClickListener gimbalModeButtonOnClick = new View.OnClickListener()
     {
         @Override
         public void onClick(View view)
@@ -245,7 +280,7 @@ public class PilotActivity extends Activity
     /**
      * Called when the Start Gimbal button is clicked
      */
-    View.OnClickListener gimbalMoveButtonOnClick = new View.OnClickListener()
+    private View.OnClickListener gimbalMoveButtonOnClick = new View.OnClickListener()
     {
         @Override
         public void onClick(View view)
@@ -279,7 +314,7 @@ public class PilotActivity extends Activity
     /**
      * Called when the Start Gimbal button is clicked
      */
-    View.OnClickListener gimbalStartButtonOnClick = new View.OnClickListener()
+    private View.OnClickListener gimbalStartButtonOnClick = new View.OnClickListener()
     {
         @Override
         public void onClick(View view)

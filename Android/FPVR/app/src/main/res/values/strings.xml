@@ -9,4 +9,5 @@
     <string name="yawLabel">yaw</string>
     <string name="pithcLabel">pitch</string>
     <string name="rollLabel">roll</string>
+    <string name="statusLabelText">Status...</string>
 </resources>

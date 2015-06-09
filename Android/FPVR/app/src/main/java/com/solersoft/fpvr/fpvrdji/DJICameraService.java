@@ -28,7 +28,7 @@ import dji.sdk.widget.DjiGLSurfaceView;
 /**
  * An implementation of the {@link ICameraInfo} service.
  */
-public class DJICameraService extends Connectable implements ICameraInfo, IVehicleService
+public class DJICameraService extends Connectable implements ICameraInfo
 {
     //region Constants
     private static final String TAG = "DJICameraService";
