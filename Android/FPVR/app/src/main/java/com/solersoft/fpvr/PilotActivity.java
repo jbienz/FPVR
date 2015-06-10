@@ -33,6 +33,8 @@ import android.widget.TextView;
 
 import java.net.InetAddress;
 
+import dji.log.DJILogHelper;
+
 
 public class PilotActivity extends Activity
 {
@@ -74,6 +76,9 @@ public class PilotActivity extends Activity
     {
         // Get the context
         final Context context = this.getApplicationContext();
+
+        // HACK: Fix DJI Bug for not making sure DJILogHelper is initialized before using it
+        DJILogHelper.getInstance().init(context);
 
         if (inspire)
         {
@@ -236,11 +241,18 @@ public class PilotActivity extends Activity
     private BatteryListener batteryListener = new BatteryListener()
     {
         @Override
-        public void onBatteryChanged(IBatteryInfo battery)
+        public void onBatteryChanged(final IBatteryInfo battery)
         {
-            batteryLifeView.setCriticalPercent((float)battery.getCriticalPercent());
-            batteryLifeView.setLowPercent((float)battery.getLowPercent());
-            batteryLifeView.setRemainingPercent((float)battery.getRemainingPercent());
+            PilotActivity.this.runOnUiThread(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    batteryLifeView.setCriticalPercent((float) battery.getCriticalPercent());
+                    batteryLifeView.setLowPercent((float)battery.getLowPercent());
+                    batteryLifeView.setRemainingPercent((float)battery.getRemainingPercent());
+                }
+            });
         }
     };
 

@@ -28,8 +28,8 @@
             android:layout_height="14dp"
             android:id="@+id/batteryLifeView"
             android:layout_gravity="center_horizontal|top"
-            app:criticalPercent="0.1"
-            app:lowPercent="0.25"
+            app:criticalPercent="0.07"
+            app:lowPercent="0.15"
             app:remainingPercent="0.4"
             />
 

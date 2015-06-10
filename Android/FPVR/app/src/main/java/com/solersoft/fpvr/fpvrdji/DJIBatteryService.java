@@ -15,7 +15,9 @@ import java.util.HashSet;
 import dji.sdk.api.Battery.DJIBattery;
 import dji.sdk.api.Battery.DJIBatteryProperty;
 import dji.sdk.api.DJIDrone;
+import dji.sdk.api.DJIDroneTypeDef.*;
 import dji.sdk.api.DJIError;
+import dji.sdk.interfaces.DJIBatteryGetPartVoltageCallBack;
 import dji.sdk.interfaces.DJIBatteryUpdateInfoCallBack;
 import dji.sdk.interfaces.DJISmartBatteryExecuteResultCallback;
 
@@ -43,7 +45,7 @@ public class DJIBatteryService extends Connectable implements IBatteryInfo
         @Override
         public void onResult(DJIBatteryProperty djiBatteryProperty)
         {
-            remainingPercent = 100d / (double)djiBatteryProperty.remainLifePercent;
+            remainingPercent = ((double)djiBatteryProperty.remainLifePercent) / 100d; // V is in percent but as a whole number
             voltage = djiBatteryProperty.currentVoltage;
 
             if (listener != null)
@@ -59,6 +61,24 @@ public class DJIBatteryService extends Connectable implements IBatteryInfo
         // Get battery
         final DJIBattery battery = DJIDrone.getDjiBattery();
 
+/*        // Get drone type
+        DJIDroneType droneType = DJIDrone.getDroneType();
+        if (droneType == DJIDroneType.DJIDrone_Inspire1)
+        {
+            fullVoltage = 22.8d;
+        }
+        else if (droneType == DJIDroneType.DJIDrone_Vision)
+        {
+            fullVoltage = 11.1d;
+        }
+
+        // If we don't know the full voltage there's nothing else we can do
+        if (fullVoltage <= 0)
+        {
+            if (handler != null) { handler.onResult(new Result(true)); }
+            return;
+        }*/
+
         // Get event levels
         battery.getSmartBatteryGohomeBatteryLevel(new DJISmartBatteryExecuteResultCallback()
         {
@@ -67,7 +87,7 @@ public class DJIBatteryService extends Connectable implements IBatteryInfo
             {
                 if (DJI.Success(djiError.errorCode))
                 {
-                    lowPercent = v; // TODO: Is this volts?
+                    lowPercent = v / 100d; // V is in percent but as a whole number
                     eventLevels.add(new BatteryLevelEvent(BatteryLevelEventType.ReturnHome, v));
                 }
 
@@ -78,7 +98,7 @@ public class DJIBatteryService extends Connectable implements IBatteryInfo
                     {
                         if (DJI.Success(djiError.errorCode))
                         {
-                            criticalPercent = v; // TODO: Is this volts?
+                            criticalPercent = v / 100d; // V is in percent but as a whole number
                             eventLevels.add(new BatteryLevelEvent(BatteryLevelEventType.AutoLand, v));
                         }
 
